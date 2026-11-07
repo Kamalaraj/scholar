@@ -3,6 +3,7 @@ from typing import Annotated, Any
 
 import httpx
 import jwt
+import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.algorithms import RSAAlgorithm
@@ -17,6 +18,7 @@ JWKS_TTL_SECONDS = 3600
 JWKS_MIN_REFETCH_SECONDS = 30
 
 _bearer = HTTPBearer(auto_error=False)
+logger = structlog.get_logger(__name__)
 
 
 class JWKSCache:
@@ -72,11 +74,13 @@ async def verify_token(token: str) -> dict[str, Any]:
             options={"require": ["exp", "nbf", "iss", "sub"]},
         )
     except (jwt.PyJWTError, httpx.HTTPError, KeyError, ValueError) as exc:
+        logger.warning("auth_rejected", reason=type(exc).__name__, detail=str(exc)[:200])
         raise _unauthorized() from exc
 
     allowed = {p.strip() for p in settings.clerk_authorized_parties.split(",") if p.strip()}
     azp = claims.get("azp")
     if not allowed or azp not in allowed:
+        logger.warning("auth_rejected", reason="azp_not_allowed", azp=azp)
         raise _unauthorized()
     return claims
 

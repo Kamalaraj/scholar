@@ -34,16 +34,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider appearance={clerkAppearance}>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${inter.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} antialiased`}
-        >
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} antialiased`}
+      >
+        <ClerkProvider appearance={clerkAppearance} signInUrl="/sign-in" signUpUrl="/sign-up">
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Providers>{children}</Providers>
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
