@@ -1,0 +1,20 @@
+# Copy to .env and fill in real values. Never commit .env.
+
+# --- Backend ---
+DATABASE_URL=postgresql+psycopg://scholar:scholar@localhost:5432/scholar
+GROQ_API_KEY=
+TAVILY_API_KEY=
+LLM_PROVIDER=groq
+SEARCH_PROVIDER=tavily
+CLERK_JWKS_URL=
+CLERK_ISSUER=
+CLERK_AUTHORIZED_PARTIES=
+FRONTEND_ORIGIN=http://localhost:3000
+DAILY_RUN_LIMIT=5
+LANGSMITH_API_KEY=
+LANGSMITH_TRACING=false
+
+# --- Frontend ---
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
