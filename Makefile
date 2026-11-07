@@ -42,5 +42,5 @@ e2e:
 	cd frontend && npx playwright test
 
 types:
-	cd backend && uv run python -c "import json; from app.main import app; print(json.dumps(app.openapi()))" > /tmp/scholar-openapi.json
-	cd frontend && npx openapi-typescript /tmp/scholar-openapi.json -o lib/api-types.ts
+	cd backend && uv run python -c "import json; from app.main import app; print(json.dumps(app.openapi()))" > ../frontend/.openapi.json
+	cd frontend && npx openapi-typescript .openapi.json -o lib/api-types.ts && rm .openapi.json
