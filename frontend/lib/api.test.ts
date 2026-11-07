@@ -20,13 +20,11 @@ describe("apiFetch", () => {
   it("throws a typed ApiError with the status and detail", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(JSON.stringify({ detail: "Invalid or missing credentials" }), {
-            status: 401,
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "Invalid or missing credentials" }), {
+          status: 401,
+        }),
+      ),
     );
 
     await expect(apiFetch("/me", async () => null)).rejects.toMatchObject({

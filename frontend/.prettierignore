@@ -1,0 +1,5 @@
+components/ui
+lib/api-types.ts
+.next
+playwright-report
+test-results
