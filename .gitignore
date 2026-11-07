@@ -1,0 +1,46 @@
+# Env files (never commit secrets)
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.test
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Docker volumes (local data)
+backend/pgdata/
