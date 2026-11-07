@@ -1,6 +1,7 @@
 import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 
+import { AccountBadge } from "@/components/layout/account-badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopBar() {
@@ -10,6 +11,7 @@ export function TopBar() {
         Scholar
       </Link>
       <div className="flex items-center gap-3">
+        <AccountBadge />
         <ThemeToggle />
         <UserButton />
       </div>

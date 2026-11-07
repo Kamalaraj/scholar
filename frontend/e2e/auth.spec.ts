@@ -20,7 +20,7 @@ test("TP-1.2/1.3/1.4 sign in, call /me with a Bearer token, sign out", async ({ 
 
   expect((await meRequest).headers()["authorization"]).toMatch(/^Bearer ey/);
   expect((await meResponse).status()).toBe(200);
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await expect(page.getByText(email!, { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /open user menu/i })).toBeVisible();
 
   await clerk.signOut({ page });

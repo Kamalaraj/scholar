@@ -6,6 +6,10 @@ import type { components } from "@/lib/api-types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 export type User = components["schemas"]["UserOut"];
+export type Run = components["schemas"]["RunOut"];
+export type RunList = components["schemas"]["RunList"];
+export type RunStatus = Run["status"];
+export type Depth = Run["depth"];
 
 export class ApiError extends Error {
   readonly status: number;
@@ -41,6 +45,7 @@ export async function apiFetch<T>(
     }
     throw new ApiError(response.status, message);
   }
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -49,5 +54,15 @@ export function useApi() {
   const get = useCallback(() => getToken(), [getToken]);
   return {
     me: () => apiFetch<User>("/me", get),
+    createRun: (body: { question: string; depth: Depth }) =>
+      apiFetch<Run>("/runs", get, { method: "POST", body: JSON.stringify(body) }),
+    listRuns: (cursor?: string | null) =>
+      apiFetch<RunList>(
+        `/runs?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
+        get,
+      ),
+    getRun: (id: string) => apiFetch<Run>(`/runs/${encodeURIComponent(id)}`, get),
+    deleteRun: (id: string) =>
+      apiFetch<void>(`/runs/${encodeURIComponent(id)}`, get, { method: "DELETE" }),
   };
 }
