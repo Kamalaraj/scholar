@@ -1,10 +1,15 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Repo-root .env (also works from any working directory); ignored if missing, e.g. in Docker.
+_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
-    database_url: str = "postgresql+psycopg://scholar:scholar@localhost:5432/scholar"
+    database_url: str = "postgresql+psycopg://scholar:scholar@localhost:5434/scholar"
 
     groq_api_key: str = ""
     tavily_api_key: str = ""

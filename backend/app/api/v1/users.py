@@ -1,0 +1,14 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from app.core.security import get_current_user
+from app.db.models import User
+from app.schemas.user import UserOut
+
+router = APIRouter(tags=["users"])
+
+
+@router.get("/me", response_model=UserOut)
+async def me(user: Annotated[User, Depends(get_current_user)]) -> User:
+    return user

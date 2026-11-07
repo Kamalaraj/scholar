@@ -126,7 +126,7 @@ Never mark a phase done if a scenario fails or a Critical or High finding is ope
 
 | Name | Where | Notes |
 | --- | --- | --- |
-| `DATABASE_URL` | backend | `postgresql+psycopg://scholar:scholar@localhost:5432/scholar` locally |
+| `DATABASE_URL` | backend | `postgresql+psycopg://scholar:scholar@localhost:5434/scholar` locally |
 | `GROQ_API_KEY` | backend | Groq console |
 | `TAVILY_API_KEY` | backend | Tavily dashboard |
 | `LLM_PROVIDER`, `SEARCH_PROVIDER` | backend | `groq`/`tavily` or `fake` |

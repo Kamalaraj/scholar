@@ -1,4 +1,6 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
+import { buttonVariants } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const steps = [
@@ -23,7 +25,9 @@ export default function Home() {
           You write the question. A planner drafts a research plan, you approve it, and agents
           search and read the web to write a cited report.
         </p>
-        <Button size="lg">Start researching</Button>
+        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+          Start researching
+        </Link>
 
         <ol className="mt-12 grid w-full gap-6 sm:grid-cols-3">
           {steps.map((step, index) => (

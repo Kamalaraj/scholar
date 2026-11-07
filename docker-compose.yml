@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: scholar
       POSTGRES_DB: scholar
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - scholar-pgdata:/var/lib/postgresql/data
     healthcheck:
