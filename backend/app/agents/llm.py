@@ -1,14 +1,17 @@
 import asyncio
+import itertools
 import json
 import re
 from collections.abc import Iterator
 from typing import Any, Literal
 
+from groq import RateLimitError
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
-from pydantic import BaseModel, ValidationError
+from langchain_core.runnables import Runnable
+from pydantic import BaseModel, SecretStr, ValidationError
 
 from app.agents.budget import current_budget
 from app.core.config import settings
@@ -16,20 +19,41 @@ from app.core.config import settings
 Kind = Literal["strong", "fast"]
 
 
-def get_llm(kind: Kind) -> BaseChatModel:
-    """The only place chat models are created."""
-    if settings.llm_provider == "fake":
-        return FakeChatModel()
+LLM = Runnable[Any, BaseMessage]
+_key_cursor = itertools.count()
+
+
+def _groq_model(kind: Kind, api_key: str, max_retries: int) -> BaseChatModel:
     from langchain_groq import ChatGroq  # imported here so no other module touches ChatGroq
 
     # max_retries: the Groq SDK retries 429 and 5xx with exponential backoff.
     return ChatGroq(
         model=settings.groq_strong_model if kind == "strong" else settings.groq_fast_model,
-        api_key=settings.groq_api_key,  # type: ignore[arg-type]
+        api_key=SecretStr(api_key),
         temperature=0.2,
-        max_retries=3,
+        max_retries=max_retries,
         timeout=60,
     )
+
+
+def get_llm(kind: Kind) -> LLM:
+    """The only place chat models are created.
+
+    With several Groq keys, calls start on a rotating key and fall back to the others on a
+    rate limit (429), so parallel research branches share the load.
+    """
+    if settings.llm_provider == "fake":
+        return FakeChatModel()
+    keys = settings.groq_keys
+    if not keys:
+        raise RuntimeError("No Groq API key configured (set GROQ_API_KEY or GROQ_API_KEYS)")
+    if len(keys) == 1:
+        return _groq_model(kind, keys[0], max_retries=3)
+    start = next(_key_cursor) % len(keys)
+    ordered = keys[start:] + keys[:start]
+    # Fail over quickly: one SDK retry per key, then move on to the next key.
+    models = [_groq_model(kind, k, max_retries=1) for k in ordered]
+    return models[0].with_fallbacks(models[1:], exceptions_to_handle=(RateLimitError,))
 
 
 class StructuredOutputError(Exception):
@@ -48,7 +72,7 @@ def _extract_json(text: str) -> Any:
 
 
 async def invoke_structured[T: BaseModel](
-    llm: BaseChatModel, schema: type[T], messages: list[BaseMessage], attempts: int = 2
+    llm: LLM, schema: type[T], messages: list[BaseMessage], attempts: int = 2
 ) -> T:
     """Call the model, parse its JSON reply into `schema`; retry once, then fail cleanly."""
     last_error: Exception | None = None

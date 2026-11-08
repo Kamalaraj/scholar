@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://scholar:scholar@localhost:5434/scholar"
 
     groq_api_key: str = ""
+    groq_api_keys: str = ""  # optional comma-separated list; rotated round-robin
     tavily_api_key: str = ""
     groq_strong_model: str = "llama-3.3-70b-versatile"
     groq_fast_model: str = "llama-3.1-8b-instant"
@@ -32,6 +33,12 @@ class Settings(BaseSettings):
 
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False
+
+    @property
+    def groq_keys(self) -> list[str]:
+        listed = [k.strip() for k in self.groq_api_keys.split(",") if k.strip()]
+        keys = [self.groq_api_key, *listed] if self.groq_api_key else listed
+        return list(dict.fromkeys(keys))  # drop duplicates, keep order
 
 
 settings = Settings()
