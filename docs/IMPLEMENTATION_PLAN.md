@@ -31,7 +31,7 @@ Do not start a phase until the previous gate passes.
 | 0 | Foundation and tooling | Done |
 | 1 | Authentication with Clerk | Done |
 | 2 | Database and Runs API | In review |
-| 3 | Agent graph core | Not started |
+| 3 | Agent graph core | Code complete, Playwright MCP gate pending |
 | 4 | Live streaming | Not started |
 | 5 | Plan review (human in the loop) | Not started |
 | 6 | Report and sources | Not started |

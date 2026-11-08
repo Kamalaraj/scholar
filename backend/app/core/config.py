@@ -13,8 +13,15 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
     tavily_api_key: str = ""
+    groq_strong_model: str = "llama-3.3-70b-versatile"
+    groq_fast_model: str = "llama-3.1-8b-instant"
     llm_provider: str = "fake"
     search_provider: str = "fake"
+    fake_step_delay_ms: int = 0
+
+    run_token_budget: int = 150_000
+    run_timeout_seconds: int = 600
+    max_research_concurrency: int = 3
 
     clerk_jwks_url: str = ""
     clerk_issuer: str = ""

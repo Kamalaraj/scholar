@@ -3,10 +3,11 @@ import json
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import ColumnElement, Select, func, select, tuple_
+from sqlalchemy import ColumnElement, Select, delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Depth, ResearchRun, RunStatus, Source
+from app.db.models import Depth, PlanItem, Report, ResearchRun, RunStatus, Source
+from app.schemas.run import PlanItemIn, PlanItemOut, ReportOut, RunDetail, SourceOut
 
 TERMINAL_STATUSES = frozenset({RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED})
 # Runs the background graph is actively working on: they must be cancelled before deletion.
@@ -134,4 +135,74 @@ async def delete_run(db: AsyncSession, run: ResearchRun) -> None:
     if run.status in ACTIVE_STATUSES:
         raise RunNotDeletableError("Cancel the run before deleting it")
     await db.delete(run)
+    await db.commit()
+
+
+async def list_plan_items(db: AsyncSession, run_id: uuid.UUID) -> list[PlanItem]:
+    stmt = select(PlanItem).where(PlanItem.run_id == run_id).order_by(PlanItem.position)
+    return list((await db.execute(stmt)).scalars())
+
+
+async def get_run_detail(
+    db: AsyncSession, user_id: uuid.UUID, run_id: uuid.UUID
+) -> RunDetail | None:
+    found = await get_run(db, user_id, run_id)
+    if found is None:
+        return None
+    run, count = found
+    sources = (
+        await db.execute(
+            select(Source).where(Source.run_id == run_id).order_by(Source.citation_num)
+        )
+    ).scalars()
+    report = (await db.execute(select(Report).where(Report.run_id == run_id))).scalar_one_or_none()
+    detail = RunDetail.model_validate(run)
+    detail.source_count = count
+    detail.plan = [PlanItemOut.model_validate(p) for p in await list_plan_items(db, run_id)]
+    detail.sources = [SourceOut.model_validate(s) for s in sources]
+    detail.report = ReportOut.model_validate(report) if report else None
+    return detail
+
+
+async def replace_plan_items(
+    db: AsyncSession, run_id: uuid.UUID, items: list[tuple[str, str | None]]
+) -> None:
+    await db.execute(delete(PlanItem).where(PlanItem.run_id == run_id))
+    db.add_all(
+        PlanItem(run_id=run_id, position=i, text=text, reason=reason)
+        for i, (text, reason) in enumerate(items)
+    )
+    await db.commit()
+
+
+async def approve_plan(
+    db: AsyncSession, run: ResearchRun, items: list[PlanItemIn] | None
+) -> list[tuple[str, str | None]]:
+    """Move to researching (only from awaiting_approval) and store the approved plan."""
+    if run.status is not RunStatus.AWAITING_APPROVAL:
+        raise InvalidTransitionError(run.status, RunStatus.RESEARCHING)
+    if items is None:
+        approved = [(p.text, p.reason) for p in await list_plan_items(db, run.id)]
+    else:
+        approved = [(i.text, i.reason) for i in items]
+    await replace_plan_items(db, run.id, approved)
+    await transition_run(db, run, RunStatus.RESEARCHING)
+    return approved
+
+
+async def save_result(
+    db: AsyncSession,
+    run_id: uuid.UUID,
+    sources: list[tuple[int, str, str, str, str | None]],
+    markdown: str,
+    key_findings: list[str],
+) -> None:
+    """Store the collected sources and the report for a finished run."""
+    await db.execute(delete(Source).where(Source.run_id == run_id))
+    await db.execute(delete(Report).where(Report.run_id == run_id))
+    db.add_all(
+        Source(run_id=run_id, citation_num=n, url=url, title=title, domain=domain, quote=quote)
+        for n, url, title, domain, quote in sources
+    )
+    db.add(Report(run_id=run_id, markdown=markdown, key_findings=key_findings))
     await db.commit()
