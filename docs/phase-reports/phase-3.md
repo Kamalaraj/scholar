@@ -1,7 +1,7 @@
 # Phase 3 report: Agent graph core
 Date: 2026-11-08
 
-Status: code complete. **Gate not closed**: Playwright MCP scenarios TP-3.1 and TP-3.2 have not been run.
+Status: gate passed (TP-3.1, TP-3.2, TP-3.3).
 
 ## Automated checks
 - Lint/types: pass (ruff, ruff format, mypy strict on `app/`; frontend eslint and `tsc` clean)
@@ -19,8 +19,8 @@ Status: code complete. **Gate not closed**: Playwright MCP scenarios TP-3.1 and 
 ## Playwright MCP scenarios
 | ID | Result | Notes |
 | --- | --- | --- |
-| TP-3.1 | Not run | Needs the stack plus a Clerk sign-in in the browser. Covered by `tests/test_run_flow.py` at API level |
-| TP-3.2 | Not run | Same. API test reaches `completed` with 3+ sources and a report |
+| TP-3.1 | Pass | Signed in as user A, example chip, Draft a plan. Run reached `awaiting_approval` with 3 plan items within seconds. My poll started late, so `pending` and `planning` were not observed live (covered by tests) |
+| TP-3.2 | Pass | Approve called with the signed-in session's token from the page (`fetch`), not the Swagger UI. Status `researching`, `writing`, `completed`; 6 sources, report and key findings present; second approve returned 409 (the only console error) |
 | TP-3.3 | Pass (live, CLI) | See below |
 
 ### TP-3.3 live run (Groq + Tavily, CLI)
@@ -44,3 +44,6 @@ Status: code complete. **Gate not closed**: Playwright MCP scenarios TP-3.1 and 
 - Open for Phase 7: cancel, and resume after a backend restart.
 
 Critical: 0 · High: 0 · Medium: 2 · Low: 1
+
+## Screenshots
+- docs/phase-reports/phase-3/dashboard-after-run.png (1280 px; no new UI this phase)
