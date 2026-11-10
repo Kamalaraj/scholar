@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { ActivityPanel, type PanelTab } from "@/components/research/activity-panel";
 import { ProgressRail, StreamNotice } from "@/components/research/progress-rail";
+import { CancelRunButton, RunStopped } from "@/components/research/run-actions";
 import { ResearchFloor } from "@/components/research/research-floor";
 import { SourceCard, type PanelSource } from "@/components/research/source-card";
 import { StatusBadge } from "@/components/research/status-badge";
@@ -166,14 +167,23 @@ export function RunWorkspace({ runId }: { runId: string }) {
       {connection === "reconnecting" && <StreamNotice>Reconnecting…</StreamNotice>}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_20rem]">
-        <ProgressRail view={{ ...view, status }} now={now} />
+        <ProgressRail
+          view={{ ...view, status }}
+          now={now}
+          footer={live ? <CancelRunButton runId={runId} /> : undefined}
+        />
 
         <div className="flex min-w-0 flex-col gap-6">
-          {failure && (
-            <div role="alert" className="rounded-lg border border-destructive bg-card p-4">
-              <h2 className="font-semibold text-destructive">This run stopped</h2>
-              <p className="mt-1 text-sm">{failure}</p>
-            </div>
+          {status === "failed" && (
+            <RunStopped runId={runId} kind="failed" message={failure} at={view.endedAt} />
+          )}
+          {status === "cancelled" && (
+            <RunStopped
+              runId={runId}
+              kind="cancelled"
+              message={null}
+              at={view.endedAt ?? data.completed_at}
+            />
           )}
           {serverStatus === "awaiting_approval" && (
             <div hidden={optimistic !== null}>
@@ -198,7 +208,13 @@ export function RunWorkspace({ runId }: { runId: string }) {
             </div>
           )}
           {(view.lanes.length > 0 || status === "researching" || status === "writing") &&
-            status !== "completed" && <ResearchFloor plan={plan} lanes={view.lanes} />}
+            status !== "completed" && (
+              <ResearchFloor
+                plan={plan}
+                lanes={view.lanes}
+                stopped={status === "cancelled" || status === "failed"}
+              />
+            )}
           {status === "writing" && (
             <div role="status" className="rounded-lg border border-border bg-card p-4">
               <h2 className="font-semibold">Writing the report</h2>

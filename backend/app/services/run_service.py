@@ -2,11 +2,13 @@ import base64
 import json
 import re
 import uuid
-from datetime import UTC, datetime
+from collections.abc import Sequence
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import ColumnElement, Select, delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models import Depth, PlanItem, Report, ResearchRun, RunEvent, RunStatus, Source
 from app.schemas.run import PlanItemIn, PlanItemOut, ReportOut, RunDetail, SourceOut
 from app.services import event_bus
@@ -46,6 +48,19 @@ class TooManyReplansError(Exception):
     pass
 
 
+class DailyLimitError(Exception):
+    """The user already started their daily allowance of runs; `reset_at` is when it renews."""
+
+    def __init__(self, limit: int, reset_at: datetime) -> None:
+        super().__init__(f"Daily limit of {limit} runs reached")
+        self.limit = limit
+        self.reset_at = reset_at
+
+
+class RunNotRetryableError(Exception):
+    pass
+
+
 class InvalidCursorError(ValueError):
     pass
 
@@ -71,7 +86,9 @@ async def transition_run(
         run.completed_at = datetime.now(UTC)
     await db.commit()
     await event_bus.emit(run.id, "status", {"status": target.value})
-    if target is RunStatus.COMPLETED:
+    if target is RunStatus.CANCELLED:
+        await event_bus.emit(run.id, "run_cancelled")
+    elif target is RunStatus.COMPLETED:
         await event_bus.emit(run.id, "run_completed")
     elif target is RunStatus.FAILED:
         await event_bus.emit(run.id, "run_failed", {"error": run.error})
@@ -91,9 +108,28 @@ def _runs_select() -> Select[ResearchRun, int]:
     return select(ResearchRun, _source_count().label("source_count"))
 
 
+def _day_start(now: datetime) -> datetime:
+    return now.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+async def check_daily_limit(
+    db: AsyncSession, user_id: uuid.UUID, now: datetime | None = None
+) -> None:
+    """Allow `settings.daily_run_limit` new runs per user per UTC day (resets at 00:00 UTC)."""
+    start = _day_start(now or datetime.now(UTC))
+    started = await db.scalar(
+        select(func.count(ResearchRun.id)).where(
+            ResearchRun.user_id == user_id, ResearchRun.created_at >= start
+        )
+    )
+    if (started or 0) >= settings.daily_run_limit:
+        raise DailyLimitError(settings.daily_run_limit, start + timedelta(days=1))
+
+
 async def create_run(
     db: AsyncSession, user_id: uuid.UUID, question: str, depth: Depth
 ) -> tuple[ResearchRun, int]:
+    await check_daily_limit(db, user_id)
     run = ResearchRun(user_id=user_id, question=question.strip(), depth=depth)
     db.add(run)
     await db.commit()
@@ -129,11 +165,15 @@ async def list_runs(
     *,
     limit: int,
     cursor: str | None = None,
-    status: RunStatus | None = None,
+    statuses: Sequence[RunStatus] | None = None,
+    search: str | None = None,
 ) -> tuple[list[tuple[ResearchRun, int]], str | None]:
     stmt = _runs_select().where(ResearchRun.user_id == user_id)
-    if status is not None:
-        stmt = stmt.where(ResearchRun.status == status)
+    if statuses:
+        stmt = stmt.where(ResearchRun.status.in_(statuses))
+    if search and search.strip():
+        escaped = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(ResearchRun.question.ilike(f"%{escaped}%", escape="\\"))
     if cursor is not None:
         created_at, run_id = decode_cursor(cursor)
         stmt = stmt.where(
@@ -143,6 +183,28 @@ async def list_runs(
     rows = [(r[0], r[1]) for r in (await db.execute(stmt)).all()]
     next_cursor = encode_cursor(rows[limit - 1][0]) if len(rows) > limit else None
     return rows[:limit], next_cursor
+
+
+async def cancel_run(db: AsyncSession, run: ResearchRun) -> ResearchRun:
+    """Mark a run that has not finished as cancelled (the caller stops its background task)."""
+    return await transition_run(db, run, RunStatus.CANCELLED)
+
+
+async def create_retry(
+    db: AsyncSession, user_id: uuid.UUID, run_id: uuid.UUID
+) -> tuple[ResearchRun, list[tuple[str, str | None]]] | None:
+    """Start a new run with the same question, depth and plan as a failed or cancelled one.
+
+    None means the run is not the user's (404). The new run still waits for the user's approval."""
+    found = await get_run(db, user_id, run_id)
+    if found is None:
+        return None
+    old = found[0]
+    if old.status not in (RunStatus.FAILED, RunStatus.CANCELLED):
+        raise RunNotRetryableError("Only failed or cancelled runs can be retried")
+    plan = [(p.text, p.reason) for p in await list_plan_items(db, old.id)]
+    new, _ = await create_run(db, user_id, old.question, old.depth)
+    return new, plan
 
 
 async def delete_run(db: AsyncSession, run: ResearchRun) -> None:

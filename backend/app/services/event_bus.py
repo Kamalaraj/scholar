@@ -27,9 +27,11 @@ EVENT_TYPES = frozenset(
         "source_found",
         "run_completed",
         "run_failed",
+        "run_cancelled",
+        "run_resumed",
     }
 )
-TERMINAL_EVENTS = frozenset({"run_completed", "run_failed"})
+TERMINAL_EVENTS = frozenset({"run_completed", "run_failed", "run_cancelled"})
 
 
 class RunEventOut(BaseModel):

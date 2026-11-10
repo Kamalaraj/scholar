@@ -2,6 +2,7 @@ import os
 
 os.environ.setdefault("LLM_PROVIDER", "fake")
 os.environ.setdefault("SEARCH_PROVIDER", "fake")
+os.environ.setdefault("DAILY_RUN_LIMIT", "1000")
 
 import time  # noqa: E402
 import uuid  # noqa: E402

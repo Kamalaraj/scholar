@@ -2,6 +2,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useCallback } from "react";
 
 import type { components } from "@/lib/api-types";
+import { runsQuery, type RunFilters } from "@/lib/library-filters";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -17,11 +18,14 @@ export type Depth = Run["depth"];
 
 export class ApiError extends Error {
   readonly status: number;
+  /** When a rate limit renews (ISO time from the X-RateLimit-Reset header), if the API said. */
+  readonly resetAt: string | null;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, resetAt: string | null = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.resetAt = resetAt;
   }
 }
 
@@ -47,7 +51,7 @@ export async function apiFetch<T>(
     } catch {
       // non-JSON error body; keep the status text
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, message, response.headers.get("X-RateLimit-Reset"));
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
@@ -70,11 +74,8 @@ export function useApi() {
     me: () => apiFetch<User>("/me", get),
     createRun: (body: { question: string; depth: Depth }) =>
       apiFetch<Run>("/runs", get, { method: "POST", body: JSON.stringify(body) }),
-    listRuns: (cursor?: string | null) =>
-      apiFetch<RunList>(
-        `/runs?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
-        get,
-      ),
+    listRuns: (cursor?: string | null, filters: RunFilters = {}) =>
+      apiFetch<RunList>(`/runs?${runsQuery(cursor, filters)}`, get),
     getRun: (id: string) => apiFetch<RunDetail>(`/runs/${encodeURIComponent(id)}`, get),
     submitPlan: (id: string, body: PlanAction) =>
       apiFetch<Run>(`/runs/${encodeURIComponent(id)}/plan`, get, {
@@ -82,6 +83,10 @@ export function useApi() {
         body: JSON.stringify(body),
       }),
     reportMarkdown: (id: string) => apiFetchText(`/runs/${encodeURIComponent(id)}/report.md`, get),
+    cancelRun: (id: string) =>
+      apiFetch<Run>(`/runs/${encodeURIComponent(id)}/cancel`, get, { method: "POST" }),
+    retryRun: (id: string) =>
+      apiFetch<Run>(`/runs/${encodeURIComponent(id)}/retry`, get, { method: "POST" }),
     deleteRun: (id: string) =>
       apiFetch<void>(`/runs/${encodeURIComponent(id)}`, get, { method: "DELETE" }),
   };

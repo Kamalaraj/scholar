@@ -77,6 +77,10 @@ function describe(event: RunEvent, plan: PlanEntry[]): string | null {
       return "Report is ready";
     case "run_failed":
       return "The run failed";
+    case "run_cancelled":
+      return "Run cancelled";
+    case "run_resumed":
+      return "Resumed after a server restart";
     default:
       return null;
   }
@@ -154,6 +158,9 @@ export function applyEvent(view: RunView, event: RunEvent): RunView {
     case "run_completed":
       next.endedAt = event.created_at;
       break;
+    case "run_cancelled":
+      next.endedAt = event.created_at;
+      break;
     case "run_failed":
       next.endedAt = event.created_at;
       next.error = typeof p.error === "string" ? p.error : "The run failed.";
@@ -170,7 +177,7 @@ export function reduceEvents(events: RunEvent[]): RunView {
 }
 
 export type StageId = "brief" | "plan" | "research" | "writing" | "report";
-export type StageState = "done" | "current" | "needs_action" | "upcoming" | "failed";
+export type StageState = "done" | "current" | "needs_action" | "upcoming" | "failed" | "cancelled";
 export type Stage = { id: StageId; label: string; state: StageState; line: string };
 
 /** Names the five stages from the rail in the design plan and their one-line status. */
@@ -230,8 +237,19 @@ export function deriveStages(view: RunView): Stage[] {
     let state: StageState = "upcoming";
     if (status === "completed" || position < reached) state = "done";
     else if (position === reached) {
-      state = failed ? "failed" : status === "awaiting_approval" ? "needs_action" : "current";
+      state = failed
+        ? status === "cancelled"
+          ? "cancelled"
+          : "failed"
+        : status === "awaiting_approval"
+          ? "needs_action"
+          : "current";
     }
-    return { id, label, state, line: state === "failed" ? "Stopped" : lines[id] };
+    return {
+      id,
+      label,
+      state,
+      line: state === "failed" ? "Stopped" : state === "cancelled" ? "Cancelled" : lines[id],
+    };
   });
 }

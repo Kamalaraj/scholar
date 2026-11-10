@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Circle, Loader2, UserRound, XCircle } from "lucide-react";
+import { AlertCircle, Ban, Check, Circle, Loader2, UserRound, XCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { deriveStages, type RunView, type StageState } from "@/lib/run-events";
@@ -15,6 +15,11 @@ const MARK: Record<StageState, { icon: typeof Circle; className: string; label: 
     label: "In progress",
   },
   needs_action: { icon: UserRound, className: "border-warning text-warning", label: "Your turn" },
+  cancelled: {
+    icon: Ban,
+    className: "border-muted-foreground bg-muted text-muted-foreground",
+    label: "Cancelled",
+  },
   failed: { icon: XCircle, className: "border-destructive text-destructive", label: "Stopped" },
   upcoming: {
     icon: Circle,
@@ -31,7 +36,16 @@ function elapsed(view: RunView, now: number): string {
 }
 
 /** Five named stages with a status line each; the current stage is the only accent. */
-export function ProgressRail({ view, now }: { view: RunView; now: number }) {
+export function ProgressRail({
+  view,
+  now,
+  footer,
+}: {
+  view: RunView;
+  now: number;
+  /** Actions under the stages, such as Cancel run. */
+  footer?: React.ReactNode;
+}) {
   const stages = deriveStages(view);
   return (
     <nav aria-label="Progress" className="min-w-0">
@@ -89,6 +103,7 @@ export function ProgressRail({ view, now }: { view: RunView; now: number }) {
           <dd className="font-mono text-[13px]">{view.sourceCount}</dd>
         </div>
       </dl>
+      {footer && <div className="mt-4 px-3">{footer}</div>}
     </nav>
   );
 }

@@ -24,6 +24,11 @@ def make_serde() -> JsonPlusSerializer:
     )
 
 
+def route_start(state: ResearchState) -> str:
+    """A run that already has a plan (a retry) goes straight to the review pause."""
+    return "human_review" if state.get("plan") else "planner"
+
+
 def build_graph(checkpointer: BaseCheckpointSaver[Any]) -> ResearchGraph:
     graph = StateGraph(ResearchState)
     graph.add_node("planner", planner)
@@ -31,7 +36,7 @@ def build_graph(checkpointer: BaseCheckpointSaver[Any]) -> ResearchGraph:
     graph.add_node("research", build_research_branch())
     graph.add_node("writer", writer)
     graph.add_node("finalize", finalize)
-    graph.add_edge(START, "planner")
+    graph.add_conditional_edges(START, route_start, ["planner", "human_review"])
     graph.add_edge("planner", "human_review")
     graph.add_edge("research", "writer")
     graph.add_edge("writer", "finalize")

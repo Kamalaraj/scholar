@@ -9,7 +9,7 @@ import { applyEvent, emptyView, type RunEvent, type RunView } from "@/lib/run-ev
 
 export type Connection = "connecting" | "live" | "reconnecting" | "closed";
 
-const TERMINAL = new Set(["run_completed", "run_failed"]);
+const TERMINAL = new Set(["run_completed", "run_failed", "run_cancelled"]);
 const MAX_BACKOFF_MS = 10_000;
 
 /**

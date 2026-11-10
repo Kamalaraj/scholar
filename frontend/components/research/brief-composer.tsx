@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ApiError, useApi, type Depth } from "@/lib/api";
+import { friendlyError } from "@/lib/rate-limit";
 
 export const MIN_QUESTION_LENGTH = 10;
 export const MAX_QUESTION_LENGTH = 1000;
@@ -41,9 +42,7 @@ export function BriefComposer({
       void queryClient.invalidateQueries({ queryKey: ["runs"] });
     },
     onError: (error) => {
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not create the run. Please try again.",
-      );
+      toast.error(friendlyError(error, "Could not create the run. Please try again."));
     },
   });
 
@@ -119,6 +118,12 @@ export function BriefComposer({
           {createRun.isPending ? "Drafting…" : "Draft a plan"}
         </Button>
       </div>
+
+      {createRun.error instanceof ApiError && createRun.error.status === 429 && (
+        <p role="alert" className="rounded-lg border border-warning bg-card p-3 text-sm">
+          {friendlyError(createRun.error, "You have reached today's limit.")}
+        </p>
+      )}
     </form>
   );
 }

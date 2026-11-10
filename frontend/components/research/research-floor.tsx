@@ -1,4 +1,4 @@
-import { CheckCircle2, Globe, Loader2, Search } from "lucide-react";
+import { Ban, CheckCircle2, Globe, Loader2, Search } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
 import type { Lane, LanePhase, PlanEntry } from "@/lib/run-events";
@@ -10,9 +10,22 @@ const PHASE_LABEL: Record<LanePhase, string> = {
   done: "Done",
 };
 
-function LaneCard({ lane, question, pages }: { lane: Lane; question: string; pages: number }) {
+function LaneCard({
+  lane,
+  question,
+  pages,
+  stopped,
+}: {
+  lane: Lane;
+  question: string;
+  pages: number;
+  stopped: boolean;
+}) {
   const done = lane.phase === "done";
-  const Icon = done ? CheckCircle2 : lane.phase === "waiting" ? Search : Loader2;
+  // A lane that never finished on a cancelled or failed run is stopped, not still working.
+  const halted = stopped && !done;
+  const busy = !done && !halted && lane.phase !== "waiting";
+  const Icon = done ? CheckCircle2 : halted ? Ban : lane.phase === "waiting" ? Search : Loader2;
   return (
     <li className="rounded-lg border border-border bg-muted p-4">
       <div className="flex items-start justify-between gap-3">
@@ -20,9 +33,9 @@ function LaneCard({ lane, question, pages }: { lane: Lane; question: string; pag
         <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
           <Icon
             aria-hidden="true"
-            className={`size-3.5 ${!done && lane.phase !== "waiting" ? "motion-safe:animate-spin" : ""} ${done ? "text-success" : ""}`}
+            className={`size-3.5 ${busy ? "motion-safe:animate-spin" : ""} ${done ? "text-success" : ""}`}
           />
-          {PHASE_LABEL[lane.phase]}
+          {halted ? "Stopped" : PHASE_LABEL[lane.phase]}
         </span>
       </div>
       <Progress
@@ -66,7 +79,16 @@ function LaneCard({ lane, question, pages }: { lane: Lane; question: string; pag
 }
 
 /** One lane per sub-question; source cards land in the lane as they are found. */
-export function ResearchFloor({ plan, lanes }: { plan: PlanEntry[]; lanes: Lane[] }) {
+export function ResearchFloor({
+  plan,
+  lanes,
+  stopped = false,
+}: {
+  plan: PlanEntry[];
+  lanes: Lane[];
+  /** The run was cancelled or failed: unfinished lanes show Stopped instead of spinning. */
+  stopped?: boolean;
+}) {
   const pages = plan.length > 0 ? Math.max(2, ...lanes.map((l) => l.pagesRead)) : 2;
   return (
     <section aria-labelledby="floor-heading" className="flex flex-col gap-3">
@@ -82,6 +104,7 @@ export function ResearchFloor({ plan, lanes }: { plan: PlanEntry[]; lanes: Lane[
             }
             question={entry.text}
             pages={pages}
+            stopped={stopped}
           />
         ))}
       </ul>

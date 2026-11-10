@@ -14,6 +14,7 @@ from app.api.v1.stream import router as stream_router
 from app.api.v1.users import router as users_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.services import run_executor
 
 configure_logging()
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     saver = AsyncPostgresSaver(pool, serde=make_serde())  # type: ignore[arg-type]
     await saver.setup()
     app.state.graph = build_graph(saver)
+    await run_executor.recover_inflight_runs(app.state.graph)
     try:
         yield
     finally:
@@ -44,6 +46,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=["Retry-After", "X-RateLimit-Reset"],
 )
 
 app.include_router(health_router, prefix="/api/v1")

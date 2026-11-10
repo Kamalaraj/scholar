@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -33,9 +34,24 @@ def _out(run: object, source_count: int) -> RunOut:
     return out
 
 
+def _limit_error(exc: run_service.DailyLimitError) -> HTTPException:
+    reset = exc.reset_at
+    return HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail=f"You have started all {exc.limit} reports for today.",
+        headers={
+            "Retry-After": str(max(1, int((reset - datetime.now(UTC)).total_seconds()))),
+            "X-RateLimit-Reset": reset.isoformat(),
+        },
+    )
+
+
 @router.post("", response_model=RunOut, status_code=status.HTTP_201_CREATED)
 async def create_run(body: RunCreate, user: CurrentUser, db: Db, graph: Graph) -> RunOut:
-    run, count = await run_service.create_run(db, user.id, body.question, body.depth)
+    try:
+        run, count = await run_service.create_run(db, user.id, body.question, body.depth)
+    except run_service.DailyLimitError as exc:
+        raise _limit_error(exc) from exc
     if graph is not None:
         run_executor.start_planning(graph, run.id)
     return _out(run, count)
@@ -47,11 +63,12 @@ async def list_runs(
     db: Db,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     cursor: str | None = None,
-    status_filter: Annotated[RunStatus | None, Query(alias="status")] = None,
+    status_filter: Annotated[list[RunStatus] | None, Query(alias="status")] = None,
+    q: Annotated[str | None, Query(max_length=200)] = None,
 ) -> RunList:
     try:
         rows, next_cursor = await run_service.list_runs(
-            db, user.id, limit=limit, cursor=cursor, status=status_filter
+            db, user.id, limit=limit, cursor=cursor, statuses=status_filter, search=q
         )
     except run_service.InvalidCursorError as exc:
         raise HTTPException(status_code=422, detail="Invalid cursor") from exc
@@ -110,6 +127,43 @@ async def submit_plan(
         run_executor.start_research(graph, run.id, approved)
     await db.refresh(run)  # updated_at is set server-side on commit
     return _out(run, count)
+
+
+@router.post("/{run_id}/cancel", response_model=RunOut)
+async def cancel_run(run_id: uuid.UUID, user: CurrentUser, db: Db) -> RunOut:
+    found = await run_service.get_run(db, user.id, run_id)
+    if found is None:
+        raise _NOT_FOUND
+    run, count = found
+    if run.status in run_service.TERMINAL_STATUSES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This run has finished")
+    await run_executor.cancel_task(run.id)
+    await db.refresh(run)  # the task may have moved the run on before it stopped
+    try:
+        await run_service.cancel_run(db, run)
+    except run_service.InvalidTransitionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="This run has finished"
+        ) from exc
+    await db.refresh(run)
+    return _out(run, count)
+
+
+@router.post("/{run_id}/retry", response_model=RunOut, status_code=status.HTTP_201_CREATED)
+async def retry_run(run_id: uuid.UUID, user: CurrentUser, db: Db, graph: Graph) -> RunOut:
+    if graph is None:
+        raise HTTPException(status_code=503, detail="Research engine is not available")
+    try:
+        created = await run_service.create_retry(db, user.id, run_id)
+    except run_service.DailyLimitError as exc:
+        raise _limit_error(exc) from exc
+    except run_service.RunNotRetryableError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    if created is None:
+        raise _NOT_FOUND
+    run, plan = created
+    run_executor.start_planning(graph, run.id, plan or None)
+    return _out(run, 0)
 
 
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
