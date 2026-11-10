@@ -32,7 +32,7 @@ Do not start a phase until the previous gate passes.
 | 1 | Authentication with Clerk | Done |
 | 2 | Database and Runs API | In review |
 | 3 | Agent graph core | In review |
-| 4 | Live streaming | Not started |
+| 4 | Live streaming | In review |
 | 5 | Plan review (human in the loop) | Not started |
 | 6 | Report and sources | Not started |
 | 7 | History, run management and resilience | Not started |

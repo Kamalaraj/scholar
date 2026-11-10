@@ -82,7 +82,7 @@ export function RunWorkspace({ runId }: { runId: string }) {
 
       {connection === "reconnecting" && <StreamNotice>Reconnecting…</StreamNotice>}
 
-      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_20rem]">
         <ProgressRail view={{ ...view, status }} now={now} />
 
         <div className="flex min-w-0 flex-col gap-6">

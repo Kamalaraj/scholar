@@ -1,0 +1,42 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - banner [ref=f1e3]:
+      - link "Scholar" [ref=f1e4] [cursor=pointer]:
+        - /url: /dashboard
+      - button "Switch to dark theme" [ref=f1e6]
+    - main [ref=f1e7]:
+      - heading "Your desk" [level=1] [ref=f1e8]
+      - generic [ref=f1e9]:
+        - generic [ref=f1e10]:
+          - generic [ref=f1e11]:
+            - generic [ref=f1e12]: What do you want to find out?
+            - textbox "What do you want to find out?" [ref=f1e13]:
+              - /placeholder: e.g. What are the main approaches to recycling EV batteries?
+            - paragraph [ref=f1e14]: Write at least 10 characters.
+          - list "Example briefs" [ref=f1e15]:
+            - listitem [ref=f1e16]:
+              - button "What are the main approaches to recycling EV batteries, and how mature are they?" [ref=f1e17]
+            - listitem [ref=f1e18]:
+              - button "How effective are four-day work weeks, based on recent pilot studies?" [ref=f1e19]
+            - listitem [ref=f1e20]:
+              - button "What is the current state of solid-state battery commercialisation?" [ref=f1e21]
+          - generic [ref=f1e22]:
+            - group "Research depth" [ref=f1e23]:
+              - button "Quick about 3 angles, ~1 min" [pressed] [ref=f1e24]:
+                - generic [ref=f1e25]: Quick
+                - generic [ref=f1e26]: about 3 angles, ~1 min
+              - button "Deep about 6 angles, ~3 min" [ref=f1e27]:
+                - generic [ref=f1e28]: Deep
+                - generic [ref=f1e29]: about 6 angles, ~3 min
+            - button "Draft a plan" [disabled]
+        - region "Your reports" [ref=f1e30]:
+          - heading "Your reports" [level=2] [ref=f1e31]
+          - list "Loading reports" [ref=f1e32]:
+            - listitem [ref=f1e33]
+            - listitem [ref=f1e35]
+            - listitem [ref=f1e37]
+            - listitem [ref=f1e39]
+            - listitem [ref=f1e41]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f1e48] [cursor=pointer]
+  - alert [ref=f1e52]

@@ -34,8 +34,8 @@ function elapsed(view: RunView, now: number): string {
 export function ProgressRail({ view, now }: { view: RunView; now: number }) {
   const stages = deriveStages(view);
   return (
-    <nav aria-label="Progress">
-      <ol className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
+    <nav aria-label="Progress" className="min-w-0">
+      <ol className="relative flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
         {stages.map((stage) => {
           const { icon: Icon, className, label } = MARK[stage.state];
           const current = stage.state === "current" || stage.state === "needs_action";

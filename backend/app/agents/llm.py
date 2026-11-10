@@ -2,7 +2,7 @@ import asyncio
 import itertools
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Any, Literal
 
 from groq import RateLimitError
@@ -145,6 +145,15 @@ class FakeChatModel(BaseChatModel):
         if settings.fake_step_delay_ms:
             await asyncio.sleep(settings.fake_step_delay_ms / 1000)
         return self._generate(messages)
+
+    async def _astream(
+        self, messages: list[BaseMessage], *args: Any, **kwargs: Any
+    ) -> AsyncIterator[ChatGenerationChunk]:
+        """Async streaming keeps the scripted step delay so phase gates can watch progress."""
+        if settings.fake_step_delay_ms:
+            await asyncio.sleep(settings.fake_step_delay_ms / 1000)
+        for chunk in self._stream(messages):
+            yield chunk
 
     def _stream(
         self, messages: list[BaseMessage], *args: Any, **kwargs: Any

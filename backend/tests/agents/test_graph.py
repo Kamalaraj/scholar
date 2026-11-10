@@ -1,5 +1,6 @@
 import uuid
 
+import pytest
 from langgraph.types import Command
 
 from app.agents.nodes.writer import strip_invalid_citations
@@ -59,3 +60,19 @@ async def test_feedback_changes_plan(graph) -> None:  # type: ignore[no-untyped-
 def test_invalid_citations_are_dropped() -> None:
     text = "Fact one [1]. Fact two [7]. Fact three [2]."
     assert strip_invalid_citations(text, {1, 2}) == "Fact one [1]. Fact two. Fact three [2]."
+
+
+async def test_fake_step_delay_applies_when_streaming(monkeypatch: pytest.MonkeyPatch) -> None:
+    """astream_events streams chat models; the scripted delay must still slow each step."""
+    import time
+
+    from app.agents.llm import get_llm
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "fake_step_delay_ms", 200)
+    started = time.monotonic()
+    async for _ in get_llm("fast").astream(
+        "[task:reader] <untrusted_web_content>Hi.</untrusted_web_content>"
+    ):
+        pass
+    assert time.monotonic() - started >= 0.2
