@@ -41,7 +41,9 @@ test("TP-4.1 rail and activity update live without reload", async ({ page }) => 
   await expect(page.getByText("Your turn · Waiting for you")).toBeVisible({ timeout: 20_000 });
   await approve(page, runId);
   await expect(page.getByRole("heading", { name: "Research floor" })).toBeVisible();
-  await expect(page.getByText("The report is ready")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Key findings" })).toBeVisible({
+    timeout: 60_000,
+  });
   await page.getByRole("tab", { name: "Activity" }).click();
   await expect(
     page.getByRole("list", { name: "Activity" }).getByText("Report is ready"),
@@ -54,7 +56,9 @@ test("TP-4.2 reload mid-run shows each event once", async ({ page }) => {
   await approve(page, runId);
   await expect(page.getByRole("heading", { name: "Research floor" })).toBeVisible();
   await page.reload();
-  await expect(page.getByText("The report is ready")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Key findings" })).toBeVisible({
+    timeout: 60_000,
+  });
   await page.getByRole("tab", { name: "Activity" }).click();
   const items = await page
     .getByRole("list", { name: "Activity" })

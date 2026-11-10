@@ -48,9 +48,13 @@ test("TP-5.2 edited, deleted and added angles are what the research floor shows"
   await expect(floor.getByRole("heading", { level: 3 })).toHaveCount(3);
   await expect(floor.getByRole("heading", { name: "My edited second angle" })).toBeVisible();
   await expect(floor.getByRole("heading", { name: "My brand new angle" })).toBeVisible();
-  await expect(page.getByText("The report is ready")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("heading", { name: "Key findings" })).toBeVisible({
+    timeout: 60_000,
+  });
   // The searches that actually ran used the edited text, and survive a reload.
   await page.reload();
+  await expect(page.getByRole("heading", { name: "Key findings" })).toBeVisible();
+  await page.getByText(/^Research details/).click();
   await expect(page.getByRole("heading", { name: "My edited second angle" })).toBeVisible();
 });
 

@@ -146,3 +146,74 @@
     animation: none;
   }
 }
+
+/* Report reading typography: Source Serif 4, 18/30, 68ch measure. Tokens only. */
+.report-prose {
+  max-width: 68ch;
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 18px;
+  line-height: 30px;
+  color: var(--foreground);
+}
+.report-prose > * + * {
+  margin-top: 1rem;
+}
+.report-prose h1 {
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
+}
+.report-prose h2 {
+  margin-top: 2rem;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 600;
+}
+.report-prose h3 {
+  margin-top: 1.5rem;
+  font-size: 19px;
+  font-weight: 600;
+}
+.report-prose ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.report-prose ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+.report-prose li + li {
+  margin-top: 0.25rem;
+}
+.report-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.report-prose blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+}
+.report-prose code {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8em;
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 0.1em 0.3em;
+}
+.report-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  line-height: 24px;
+}
+.report-prose th,
+.report-prose td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+.report-prose th {
+  background: var(--muted);
+}

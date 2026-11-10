@@ -2,14 +2,23 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { ActivityPanel } from "@/components/research/activity-panel";
+import { ActivityPanel, type PanelTab } from "@/components/research/activity-panel";
 import { ProgressRail, StreamNotice } from "@/components/research/progress-rail";
 import { ResearchFloor } from "@/components/research/research-floor";
+import { SourceCard, type PanelSource } from "@/components/research/source-card";
 import { StatusBadge } from "@/components/research/status-badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRunStream } from "@/hooks/use-run-stream";
 import { ApiError, useApi, type PlanAction, type RunStatus } from "@/lib/api";
 import type { PlanEntry } from "@/lib/run-events";
@@ -19,6 +28,12 @@ import { formatRelative } from "@/lib/utils";
 const PlanBoard = dynamic(
   () => import("@/components/research/plan-board").then((m) => m.PlanBoard),
   { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-lg" /> },
+);
+
+// react-markdown and remark-gfm only load once there is a report to read.
+const ReportView = dynamic(
+  () => import("@/components/research/report-view").then((m) => m.ReportView),
+  { ssr: false, loading: () => <Skeleton className="h-96 w-full rounded-lg" /> },
 );
 
 type Optimistic = { status: RunStatus; plan?: PlanEntry[]; atSeq: number };
@@ -31,6 +46,29 @@ export function RunWorkspace({ runId }: { runId: string }) {
     retry: (count, err) => !(err instanceof ApiError && err.status === 404) && count < 1,
   });
   const { view, connection } = useRunStream(runId);
+  const [tab, setTab] = useState<PanelTab>("sources");
+  const [hoverNum, setHoverNum] = useState<number | null>(null);
+  const [clickedNum, setClickedNum] = useState<number | null>(null);
+  const [sheetNum, setSheetNum] = useState<number | null>(null);
+  const panelBesideReport = useMediaQuery("(min-width: 1280px)");
+  // Stable on purpose: the report re-renders its citations whenever this changes.
+  const openSource = useCallback(
+    (num: number) => {
+      setClickedNum(num);
+      if (panelBesideReport) {
+        setTab("sources");
+        // Wait for the Sources tab to render before scrolling to the card.
+        requestAnimationFrame(() =>
+          document
+            .getElementById(`source-${num}`)
+            ?.scrollIntoView({ block: "center", behavior: "smooth" }),
+        );
+      } else {
+        setSheetNum(num);
+      }
+    },
+    [panelBesideReport],
+  );
   const [now, setNow] = useState(() => Date.now());
   // What we show before the server confirms a decision; rolled back if the request fails.
   const [guess, setOptimistic] = useState<Optimistic | null>(null);
@@ -97,7 +135,17 @@ export function RunWorkspace({ runId }: { runId: string }) {
       ? view.plan
       : (data.plan ?? []).map((p) => ({ text: p.text, reason: p.reason ?? null }));
   const plan = optimistic?.plan ?? savedPlan;
-  const sources = view.lanes.flatMap((l) => l.sources);
+  const panelSources: PanelSource[] =
+    data.sources && data.sources.length > 0
+      ? data.sources.map((src) => ({
+          url: src.url,
+          title: src.title,
+          domain: src.domain,
+          quote: src.quote ?? null,
+          num: src.citation_num,
+        }))
+      : view.lanes.flatMap((l) => l.sources);
+  const sheetSource = panelSources.find((src) => src.num === sheetNum);
   const failure = view.error ?? data.error;
 
   return (
@@ -149,24 +197,62 @@ export function RunWorkspace({ runId }: { runId: string }) {
               <Skeleton className="mt-3 h-16 w-full rounded-lg" />
             </div>
           )}
-          {(view.lanes.length > 0 ||
-            status === "researching" ||
-            status === "writing" ||
-            status === "completed") && <ResearchFloor plan={plan} lanes={view.lanes} />}
-          {status === "completed" && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <h2 className="font-semibold">The report is ready</h2>
+          {(view.lanes.length > 0 || status === "researching" || status === "writing") &&
+            status !== "completed" && <ResearchFloor plan={plan} lanes={view.lanes} />}
+          {status === "writing" && (
+            <div role="status" className="rounded-lg border border-border bg-card p-4">
+              <h2 className="font-semibold">Writing the report</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                {data.source_count} sources collected. The reading view arrives in Phase 6.
+                The sources are collected. The report appears here as soon as it is written.
               </p>
             </div>
+          )}
+          {status === "completed" && !data.report && (
+            <Skeleton className="h-96 w-full rounded-lg" />
+          )}
+          {status === "completed" && data.report && (
+            <ReportView
+              runId={runId}
+              question={data.question}
+              depth={data.depth}
+              date={data.completed_at ?? data.created_at}
+              report={data.report}
+              sources={data.sources ?? []}
+              onHighlight={setHoverNum}
+              onOpen={openSource}
+            />
+          )}
+          {status === "completed" && view.lanes.length > 0 && (
+            <details className="group rounded-lg border border-border bg-card p-4">
+              <summary className="cursor-pointer text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none">
+                Research details ({view.lanes.length} angles, {data.source_count} sources)
+              </summary>
+              <div className="mt-4">
+                <ResearchFloor plan={plan} lanes={view.lanes} />
+              </div>
+            </details>
           )}
         </div>
 
         <aside className="min-w-0 lg:col-span-2 xl:col-span-1">
-          <ActivityPanel activity={view.activity} sources={sources} />
+          <ActivityPanel
+            activity={view.activity}
+            sources={panelSources}
+            activeNum={hoverNum ?? clickedNum}
+            tab={tab}
+            onTabChange={setTab}
+          />
         </aside>
       </div>
+      <Sheet open={sheetSource !== undefined} onOpenChange={(open) => !open && setSheetNum(null)}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto p-4">
+          <SheetHeader className="p-0">
+            <SheetTitle>Source {sheetSource?.num}</SheetTitle>
+            <SheetDescription>Where this claim in the report comes from.</SheetDescription>
+          </SheetHeader>
+          {sheetSource && <SourceCard source={sheetSource} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

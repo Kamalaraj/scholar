@@ -34,7 +34,7 @@ Do not start a phase until the previous gate passes.
 | 3 | Agent graph core | In review |
 | 4 | Live streaming | In review |
 | 5 | Plan review (human in the loop) | In review |
-| 6 | Report and sources | Not started |
+| 6 | Report and sources | In review |
 | 7 | History, run management and resilience | Not started |
 | 8 | UI polish, accessibility and full system audit | Not started |
 | 9 | Deployment and launch | Not started |

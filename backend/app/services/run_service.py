@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 import uuid
 from datetime import UTC, datetime
 
@@ -236,3 +237,43 @@ async def save_result(
     )
     db.add(Report(run_id=run_id, markdown=markdown, key_findings=key_findings))
     await db.commit()
+
+
+def _slug(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:50].strip("-")
+    return slug or "report"
+
+
+def source_line(num: int, title: str, url: str, domain: str) -> str:
+    """One numbered line of the exported Sources list.
+
+    Titles come from untrusted web pages, so they are flattened to one line and escaped; a url
+    that is not http(s) is shown as plain text with no link."""
+    safe_title = re.sub(r"\s+", " ", title).strip().replace("\\", "\\\\")
+    safe_title = safe_title.replace("[", "\\[").replace("]", "\\]")
+    if not re.match(r"https?://", url, re.IGNORECASE):
+        return f"{num}. {safe_title} ({domain})"
+    safe_url = re.sub(r"\s", "", url).replace("(", "%28").replace(")", "%29")
+    return f"{num}. [{safe_title}]({safe_url}) ({domain})"
+
+
+async def build_report_markdown(
+    db: AsyncSession, user_id: uuid.UUID, run_id: uuid.UUID
+) -> tuple[str, str] | None:
+    """The report as one Markdown document (title, key findings, body, sources) plus a filename.
+
+    None when the run is not the user's or has no report yet (both are a 404 for the caller)."""
+    detail = await get_run_detail(db, user_id, run_id)
+    if detail is None or detail.report is None:
+        return None
+    parts = [f"# {detail.question}", ""]
+    parts.append(
+        f"*{detail.depth.value.capitalize()} research, {len(detail.sources)} sources, "
+        f"{(detail.completed_at or detail.created_at).date().isoformat()}*"
+    )
+    if detail.report.key_findings:
+        parts += ["", "## Key findings", ""] + [f"- {k}" for k in detail.report.key_findings]
+    parts += ["", detail.report.markdown.strip(), "", "## Sources", ""]
+    for s in detail.sources:
+        parts.append(source_line(s.citation_num, s.title, s.url, s.domain))
+    return "\n".join(parts) + "\n", f"{_slug(detail.question)}.md"

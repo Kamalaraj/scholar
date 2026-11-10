@@ -66,6 +66,19 @@ async def get_run(run_id: uuid.UUID, user: CurrentUser, db: Db) -> RunDetail:
     return detail
 
 
+@router.get("/{run_id}/report.md")
+async def download_report(run_id: uuid.UUID, user: CurrentUser, db: Db) -> Response:
+    built = await run_service.build_report_markdown(db, user.id, run_id)
+    if built is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    markdown, filename = built
+    return Response(
+        content=markdown,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.post("/{run_id}/plan", response_model=RunOut)
 async def submit_plan(
     run_id: uuid.UUID, body: PlanAction, user: CurrentUser, db: Db, graph: Graph
