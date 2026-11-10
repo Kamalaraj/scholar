@@ -77,13 +77,24 @@ async def submit_plan(
     if graph is None:
         raise HTTPException(status_code=503, detail="Research engine is not available")
     try:
-        approved = await run_service.approve_plan(db, run, body.items)
+        if body.action == "replan":
+            await run_service.begin_replan(db, run)
+        else:
+            approved = await run_service.approve_plan(db, run, body.items)
+    except run_service.TooManyReplansError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="This run has used all its new-plan requests. Edit the plan and approve it.",
+        ) from exc
     except run_service.InvalidTransitionError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="The plan can only be approved while the run is awaiting approval",
+            detail="The plan can only be changed while the run is awaiting approval",
         ) from exc
-    run_executor.start_research(graph, run.id, approved)
+    if body.action == "replan":
+        run_executor.start_replan(graph, run.id, body.feedback or "")
+    else:
+        run_executor.start_research(graph, run.id, approved)
     await db.refresh(run)  # updated_at is set server-side on commit
     return _out(run, count)
 

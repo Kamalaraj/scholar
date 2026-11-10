@@ -6,9 +6,12 @@ from datetime import UTC, datetime
 from sqlalchemy import ColumnElement, Select, delete, func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Depth, PlanItem, Report, ResearchRun, RunStatus, Source
+from app.db.models import Depth, PlanItem, Report, ResearchRun, RunEvent, RunStatus, Source
 from app.schemas.run import PlanItemIn, PlanItemOut, ReportOut, RunDetail, SourceOut
 from app.services import event_bus
+
+# Each re-plan is a strong-model call, so a run only gets a few.
+MAX_REPLANS = 5
 
 TERMINAL_STATUSES = frozenset({RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED})
 # Runs the background graph is actively working on: they must be cancelled before deletion.
@@ -36,6 +39,10 @@ class InvalidTransitionError(Exception):
         super().__init__(f"Cannot move a run from {current.value} to {target.value}")
         self.current = current
         self.target = target
+
+
+class TooManyReplansError(Exception):
+    pass
 
 
 class InvalidCursorError(ValueError):
@@ -192,8 +199,25 @@ async def approve_plan(
     else:
         approved = [(i.text, i.reason) for i in items]
     await replace_plan_items(db, run.id, approved)
+    await event_bus.emit(
+        run.id, "plan_approved", {"items": [{"text": t, "reason": r} for t, r in approved]}
+    )
     await transition_run(db, run, RunStatus.RESEARCHING)
     return approved
+
+
+async def begin_replan(db: AsyncSession, run: ResearchRun) -> None:
+    """Move back to planning (only from awaiting_approval) while the planner redrafts."""
+    if run.status is not RunStatus.AWAITING_APPROVAL:
+        raise InvalidTransitionError(run.status, RunStatus.PLANNING)
+    drafted = await db.scalar(
+        select(func.count(RunEvent.id)).where(
+            RunEvent.run_id == run.id, RunEvent.type == "plan_ready"
+        )
+    )
+    if (drafted or 0) - 1 >= MAX_REPLANS:
+        raise TooManyReplansError
+    await transition_run(db, run, RunStatus.PLANNING)
 
 
 async def save_result(

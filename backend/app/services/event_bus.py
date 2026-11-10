@@ -22,6 +22,7 @@ EVENT_TYPES = frozenset(
         "node_start",
         "node_end",
         "plan_ready",
+        "plan_approved",
         "tool_call",
         "source_found",
         "run_completed",

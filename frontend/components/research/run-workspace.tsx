@@ -1,7 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { ActivityPanel } from "@/components/research/activity-panel";
 import { ProgressRail, StreamNotice } from "@/components/research/progress-rail";
@@ -9,8 +11,17 @@ import { ResearchFloor } from "@/components/research/research-floor";
 import { StatusBadge } from "@/components/research/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRunStream } from "@/hooks/use-run-stream";
-import { ApiError, useApi } from "@/lib/api";
+import { ApiError, useApi, type PlanAction, type RunStatus } from "@/lib/api";
+import type { PlanEntry } from "@/lib/run-events";
 import { formatRelative } from "@/lib/utils";
+
+// dnd-kit only loads when a plan is actually waiting for review.
+const PlanBoard = dynamic(
+  () => import("@/components/research/plan-board").then((m) => m.PlanBoard),
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-lg" /> },
+);
+
+type Optimistic = { status: RunStatus; plan?: PlanEntry[]; atSeq: number };
 
 export function RunWorkspace({ runId }: { runId: string }) {
   const api = useApi();
@@ -21,7 +32,30 @@ export function RunWorkspace({ runId }: { runId: string }) {
   });
   const { view, connection } = useRunStream(runId);
   const [now, setNow] = useState(() => Date.now());
-  const status = view.status ?? data?.status ?? "pending";
+  // What we show before the server confirms a decision; rolled back if the request fails.
+  const [guess, setOptimistic] = useState<Optimistic | null>(null);
+  // Any new stream event means the server has answered, so the guess no longer applies.
+  const optimistic = guess && guess.atSeq === view.lastSeq ? guess : null;
+  const serverStatus = view.status ?? data?.status ?? "pending";
+  const status = optimistic?.status ?? serverStatus;
+  const decide = useMutation({
+    mutationFn: (body: PlanAction) => api.submitPlan(runId, body),
+    onMutate: (body) =>
+      setOptimistic(
+        body.action === "approve"
+          ? {
+              status: "researching",
+              atSeq: view.lastSeq,
+              plan: body.items?.map((i) => ({ text: i.text, reason: i.reason ?? null })),
+            }
+          : { status: "planning", atSeq: view.lastSeq },
+      ),
+    onError: (err) => {
+      setOptimistic(null);
+      toast.error(err instanceof ApiError ? err.message : "Could not send your decision.");
+    },
+  });
+
   const live = status !== "completed" && status !== "failed" && status !== "cancelled";
 
   useEffect(() => {
@@ -58,10 +92,11 @@ export function RunWorkspace({ runId }: { runId: string }) {
     );
   }
 
-  const plan =
+  const savedPlan =
     view.plan.length > 0
       ? view.plan
       : (data.plan ?? []).map((p) => ({ text: p.text, reason: p.reason ?? null }));
+  const plan = optimistic?.plan ?? savedPlan;
   const sources = view.lanes.flatMap((l) => l.sources);
   const failure = view.error ?? data.error;
 
@@ -92,17 +127,26 @@ export function RunWorkspace({ runId }: { runId: string }) {
               <p className="mt-1 text-sm">{failure}</p>
             </div>
           )}
-          {status === "awaiting_approval" && (
-            <div className="rounded-lg border border-warning bg-card p-4">
-              <h2 className="font-semibold">Here is the plan</h2>
-              <ol className="mt-2 list-decimal pl-5 text-sm">
-                {plan.map((p, i) => (
-                  <li key={i}>{p.text}</li>
-                ))}
-              </ol>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Editing and approving the plan arrives in the next phase.
+          {serverStatus === "awaiting_approval" && (
+            <div hidden={optimistic !== null}>
+              <PlanBoard
+                key={view.planSeq}
+                question={data.question}
+                plan={savedPlan}
+                busy={decide.isPending}
+                error={decide.error instanceof ApiError ? decide.error.message : null}
+                onApprove={(items) => decide.mutate({ action: "approve", items })}
+                onReplan={(feedback) => decide.mutate({ action: "replan", feedback })}
+              />
+            </div>
+          )}
+          {status === "planning" && (
+            <div role="status" className="rounded-lg border border-border bg-card p-4">
+              <h2 className="font-semibold">Drafting the plan</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The planner is breaking your question into angles.
               </p>
+              <Skeleton className="mt-3 h-16 w-full rounded-lg" />
             </div>
           )}
           {(view.lanes.length > 0 ||

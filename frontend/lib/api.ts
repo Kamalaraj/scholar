@@ -8,6 +8,7 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000
 export type User = components["schemas"]["UserOut"];
 export type Run = components["schemas"]["RunOut"];
 export type RunDetail = components["schemas"]["RunDetail"];
+export type PlanAction = components["schemas"]["PlanAction"];
 export type RunList = components["schemas"]["RunList"];
 export type RunStatus = Run["status"];
 export type Depth = Run["depth"];
@@ -63,6 +64,11 @@ export function useApi() {
         get,
       ),
     getRun: (id: string) => apiFetch<RunDetail>(`/runs/${encodeURIComponent(id)}`, get),
+    submitPlan: (id: string, body: PlanAction) =>
+      apiFetch<Run>(`/runs/${encodeURIComponent(id)}/plan`, get, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     deleteRun: (id: string) =>
       apiFetch<void>(`/runs/${encodeURIComponent(id)}`, get, { method: "DELETE" }),
   };

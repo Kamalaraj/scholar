@@ -38,6 +38,10 @@ def start_planning(graph: Graph, run_id: uuid.UUID) -> None:
     _launch(run_id, _guarded(run_id, _plan(graph, run_id)))
 
 
+def start_replan(graph: Graph, run_id: uuid.UUID, feedback: str) -> None:
+    _launch(run_id, _guarded(run_id, _replan(graph, run_id, feedback)))
+
+
 def start_research(graph: Graph, run_id: uuid.UUID, items: list[tuple[str, str | None]]) -> None:
     _launch(run_id, _guarded(run_id, _research(graph, run_id, items)))
 
@@ -102,21 +106,35 @@ async def _stream(
             await event_bus.emit(run_id, "node_end", payload)
 
 
+async def _publish_plan(graph: Graph, run_id: uuid.UUID, run: ResearchRun, db: Any) -> None:
+    """Store the planner's latest plan, announce it and wait for the user."""
+    state = await graph.aget_state(_config(run_id))
+    items = [(q.text, q.reason) for q in state.values["plan"]]
+    await run_service.replace_plan_items(db, run_id, items)
+    await event_bus.emit(
+        run_id, "plan_ready", {"items": [{"text": t, "reason": r} for t, r in items]}
+    )
+    await run_service.transition_run(db, run, RunStatus.AWAITING_APPROVAL)
+
+
 async def _plan(graph: Graph, run_id: uuid.UUID) -> None:
     async with async_session_maker() as db:
         run = await db.get(ResearchRun, run_id)
         if run is None:
             return
         await run_service.transition_run(db, run, RunStatus.PLANNING)
-        config = _config(run_id)
         await _stream(graph, run_id, {"question": run.question, "depth": run.depth.value})
-        state = await graph.aget_state(config)
-        items = [(q.text, q.reason) for q in state.values["plan"]]
-        await run_service.replace_plan_items(db, run_id, items)
-        await event_bus.emit(
-            run_id, "plan_ready", {"items": [{"text": t, "reason": r} for t, r in items]}
-        )
-        await run_service.transition_run(db, run, RunStatus.AWAITING_APPROVAL)
+        await _publish_plan(graph, run_id, run, db)
+
+
+async def _replan(graph: Graph, run_id: uuid.UUID, feedback: str) -> None:
+    """The run is already `planning` (set by the request); redraft with the user's feedback."""
+    async with async_session_maker() as db:
+        run = await db.get(ResearchRun, run_id)
+        if run is None:
+            return
+        await _stream(graph, run_id, Command(resume={"replan": feedback}))
+        await _publish_plan(graph, run_id, run, db)
 
 
 async def _research(graph: Graph, run_id: uuid.UUID, items: list[tuple[str, str | None]]) -> None:

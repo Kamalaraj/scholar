@@ -91,6 +91,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/runs/{run_id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Run */
+        get: operations["stream_run_api_v1_runs__run_id__stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -107,16 +124,18 @@ export interface components {
         };
         /**
          * PlanAction
-         * @description Body of POST /runs/{id}/plan. Phase 3 supports approve; re-plan arrives in Phase 5.
+         * @description Body of POST /runs/{id}/plan: approve (maybe with edited items) or ask for a new plan.
          */
         PlanAction: {
             /**
              * Action
-             * @constant
+             * @enum {string}
              */
-            action: "approve";
+            action: "approve" | "replan";
             /** Items */
             items?: components["schemas"]["PlanItemIn"][] | null;
+            /** Feedback */
+            feedback?: string | null;
         };
         /** PlanItemIn */
         PlanItemIn: {
@@ -470,6 +489,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_run_api_v1_runs__run_id__stream_get: {
+        parameters: {
+            query?: {
+                after_seq?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

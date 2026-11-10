@@ -10,19 +10,15 @@ async function createRun(page: Page): Promise<string> {
   await page.goto("/");
   await clerk.signIn({ page, emailAddress: emailA! });
   await page.goto("/dashboard");
-  await page
-    .getByLabel(/what do you want to find out/i)
-    .fill(`Stream check ${Date.now()}: how do heat pumps work?`);
+  const question = `Stream check ${crypto.randomUUID()}: how do heat pumps work?`;
+  await page.getByLabel(/what do you want to find out/i).fill(question);
   await page.getByRole("button", { name: "Draft a plan" }).click();
-  await page
-    .getByRole("link", { name: /Stream check/ })
-    .first()
-    .click();
+  await page.getByRole("link", { name: question }).first().click();
   await page.waitForURL(/\/runs\/.+/);
   return page.url().split("/runs/")[1];
 }
 
-/** Plan approval has no UI until Phase 5, so approve through the API with the page's session. */
+/** These specs watch the stream, not the plan board: approve through the API with the page's session. */
 async function approve(page: Page, runId: string) {
   await page.evaluate(
     async ([api, id]) => {

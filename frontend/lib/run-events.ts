@@ -24,6 +24,8 @@ export type RunView = {
   lastSeq: number;
   status: RunStatus | null;
   plan: PlanEntry[];
+  /** seq of the latest plan_ready; changes whenever the planner delivers a new plan. */
+  planSeq: number;
   lanes: Lane[];
   activity: ActivityEntry[];
   sourceCount: number;
@@ -36,6 +38,7 @@ export const emptyView: RunView = {
   lastSeq: 0,
   status: null,
   plan: [],
+  planSeq: 0,
   lanes: [],
   activity: [],
   sourceCount: 0,
@@ -61,6 +64,8 @@ function describe(event: RunEvent, plan: PlanEntry[]): string | null {
   switch (event.type) {
     case "plan_ready":
       return `Drafted a plan with ${plan.length} angles`;
+    case "plan_approved":
+      return `Plan approved with ${plan.length} angles`;
     case "tool_call":
       return p.tool === "search" ? `Searched "${str(p.query)}"` : `Read ${hostOf(str(p.url))}`;
     case "source_found":
@@ -100,12 +105,14 @@ export function applyEvent(view: RunView, event: RunEvent): RunView {
       next.status = str(p.status) as RunStatus;
       break;
     case "plan_ready":
+    case "plan_approved":
       next.plan = Array.isArray(p.items)
         ? (p.items as { text: string; reason?: string | null }[]).map((i) => ({
             text: i.text,
             reason: i.reason ?? null,
           }))
         : [];
+      if (event.type === "plan_ready") next.planSeq = event.seq;
       next.lanes = [];
       break;
     case "tool_call": {
