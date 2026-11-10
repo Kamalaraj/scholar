@@ -8,8 +8,8 @@ from typing import Any, Literal
 from groq import RateLimitError
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from pydantic import BaseModel, SecretStr, ValidationError
 
@@ -146,8 +146,14 @@ class FakeChatModel(BaseChatModel):
             await asyncio.sleep(settings.fake_step_delay_ms / 1000)
         return self._generate(messages)
 
-    def _stream(self, *args: Any, **kwargs: Any) -> Iterator[Any]:  # pragma: no cover
-        raise NotImplementedError
+    def _stream(
+        self, messages: list[BaseMessage], *args: Any, **kwargs: Any
+    ) -> Iterator[ChatGenerationChunk]:
+        """astream_events streams chat models; emit the whole scripted answer as one chunk."""
+        answer = self._answer(messages)
+        yield ChatGenerationChunk(
+            message=AIMessageChunk(content=answer.content, usage_metadata=answer.usage_metadata)
+        )
 
 
 def _fake_plan(text: str) -> dict[str, Any]:

@@ -1,4 +1,4 @@
-import { RunSummary } from "@/components/research/run-summary";
+import { RunWorkspace } from "@/components/research/run-workspace";
 import { TopBar } from "@/components/layout/top-bar";
 
 export default async function RunPage({ params }: { params: Promise<{ id: string }> }) {
@@ -6,8 +6,8 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   return (
     <div className="min-h-screen bg-background text-foreground">
       <TopBar />
-      <main className="mx-auto max-w-[880px] px-4 py-8 sm:px-6 sm:py-12">
-        <RunSummary runId={id} />
+      <main className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 sm:py-12">
+        <RunWorkspace runId={id} />
       </main>
     </div>
   );

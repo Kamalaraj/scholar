@@ -8,7 +8,7 @@ from langgraph.types import Send
 from app.agents.nodes.finalize import finalize
 from app.agents.nodes.human_review import human_review
 from app.agents.nodes.planner import planner
-from app.agents.nodes.research import build_research_subgraph
+from app.agents.nodes.research import build_research_branch
 from app.agents.nodes.writer import writer
 from app.agents.state import ResearchState
 from app.agents.types import ResearchGraph
@@ -44,7 +44,7 @@ def build_graph(checkpointer: BaseCheckpointSaver[Any]) -> ResearchGraph:
     graph = StateGraph(ResearchState)
     graph.add_node("planner", planner)
     graph.add_node("human_review", human_review)
-    graph.add_node("research", build_research_subgraph())
+    graph.add_node("research", build_research_branch())
     graph.add_node("writer", writer)
     graph.add_node("finalize", finalize)
     graph.add_edge(START, "planner")

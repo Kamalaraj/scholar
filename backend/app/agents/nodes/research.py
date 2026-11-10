@@ -1,6 +1,9 @@
 import logging
+from typing import Any
 
+from langchain_core.callbacks.manager import adispatch_custom_event
 from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.runnables import Runnable, RunnableLambda
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel
 
@@ -17,12 +20,24 @@ PAGES_PER_QUESTION = {"quick": 2, "deep": 3}
 CLOSING_TAG = "</untrusted_web_content>"
 
 
+async def _notify(name: str, data: dict[str, Any]) -> None:
+    """Progress event for the live stream; a no-op when the node runs outside a graph run."""
+    try:
+        await adispatch_custom_event(name, data)
+    except RuntimeError:
+        pass
+
+
 class ReaderOut(BaseModel):
     summary: str
     quote: str = ""
 
 
 async def searcher(state: BranchState) -> dict[str, list[dict[str, str]]]:
+    await _notify(
+        "tool_call",
+        {"index": state["index"], "tool": "search", "query": state["sub_question"].text},
+    )
     results = await search_web(state["sub_question"].text, max_results=4)
     seen: set[str] = set()
     unique: list[SearchResult] = []
@@ -39,6 +54,10 @@ async def reader(state: BranchState) -> dict[str, list[Finding] | list[Source]]:
     findings: list[Finding] = []
     sources: list[Source] = []
     for result in state.get("results", [])[:limit]:
+        await _notify(
+            "tool_call",
+            {"index": state["index"], "tool": "read", "url": result["url"]},
+        )
         try:
             text = await read_page(result["url"])
         except Exception as exc:  # a dead page must not sink the branch
@@ -61,13 +80,19 @@ async def reader(state: BranchState) -> dict[str, list[Finding] | list[Source]]:
             ],
         )
         quote = out.quote if out.quote and out.quote in text else text[:200]
-        sources.append(
-            Source(
-                url=result["url"],
-                title=result["title"],
-                domain=domain_of(result["url"]),
-                quote=quote,
-            )
+        source = Source(
+            url=result["url"], title=result["title"], domain=domain_of(result["url"]), quote=quote
+        )
+        sources.append(source)
+        await _notify(
+            "source_found",
+            {
+                "index": state["index"],
+                "url": source.url,
+                "title": source.title,
+                "domain": source.domain,
+                "quote": source.quote,
+            },
         )
         findings.append(
             Finding(
@@ -85,3 +110,18 @@ def build_research_subgraph() -> ResearchGraph:
     graph.add_edge("searcher", "reader")
     graph.add_edge("reader", END)
     return graph.compile()
+
+
+def build_research_branch() -> Runnable[BranchState, BranchOutput]:
+    """One research branch as a plain node.
+
+    The subgraph is invoked inside the node so only `findings` and `sources` reach the parent
+    state; streaming events (astream_events) would otherwise leak the whole branch state.
+    """
+    subgraph = build_research_subgraph()
+
+    async def research(state: BranchState) -> BranchOutput:
+        out = await subgraph.ainvoke(state)
+        return {"findings": out["findings"], "sources": out["sources"]}
+
+    return RunnableLambda(research, name="research_branch")

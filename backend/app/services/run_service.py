@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Depth, PlanItem, Report, ResearchRun, RunStatus, Source
 from app.schemas.run import PlanItemIn, PlanItemOut, ReportOut, RunDetail, SourceOut
+from app.services import event_bus
 
 TERMINAL_STATUSES = frozenset({RunStatus.COMPLETED, RunStatus.FAILED, RunStatus.CANCELLED})
 # Runs the background graph is actively working on: they must be cancelled before deletion.
@@ -61,6 +62,11 @@ async def transition_run(
     if target in TERMINAL_STATUSES:
         run.completed_at = datetime.now(UTC)
     await db.commit()
+    await event_bus.emit(run.id, "status", {"status": target.value})
+    if target is RunStatus.COMPLETED:
+        await event_bus.emit(run.id, "run_completed")
+    elif target is RunStatus.FAILED:
+        await event_bus.emit(run.id, "run_failed", {"error": run.error})
     return run
 
 

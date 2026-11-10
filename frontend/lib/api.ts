@@ -3,10 +3,11 @@ import { useCallback } from "react";
 
 import type { components } from "@/lib/api-types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 export type User = components["schemas"]["UserOut"];
 export type Run = components["schemas"]["RunOut"];
+export type RunDetail = components["schemas"]["RunDetail"];
 export type RunList = components["schemas"]["RunList"];
 export type RunStatus = Run["status"];
 export type Depth = Run["depth"];
@@ -61,7 +62,7 @@ export function useApi() {
         `/runs?limit=20${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`,
         get,
       ),
-    getRun: (id: string) => apiFetch<Run>(`/runs/${encodeURIComponent(id)}`, get),
+    getRun: (id: string) => apiFetch<RunDetail>(`/runs/${encodeURIComponent(id)}`, get),
     deleteRun: (id: string) =>
       apiFetch<void>(`/runs/${encodeURIComponent(id)}`, get, { method: "DELETE" }),
   };

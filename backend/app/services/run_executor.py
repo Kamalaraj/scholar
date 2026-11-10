@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
@@ -13,7 +14,7 @@ from app.agents.types import ResearchGraph as Graph
 from app.core.config import settings
 from app.db.models import ResearchRun, RunStatus
 from app.db.session import async_session_maker
-from app.services import run_service
+from app.services import event_bus, run_service
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +69,39 @@ async def _fail(run_id: uuid.UUID, reason: str) -> None:
             await run_service.transition_run(db, run, RunStatus.FAILED, error=reason)
 
 
+_NODES = frozenset({"planner", "research", "searcher", "reader", "writer"})
+
+
+async def _stream(
+    graph: Graph,
+    run_id: uuid.UUID,
+    graph_input: Any,
+    on_writer: Callable[[], Awaitable[None]] | None = None,
+) -> None:
+    """Run the graph, turning LangGraph events into app events."""
+    async for ev in graph.astream_events(graph_input, _config(run_id), version="v2"):
+        kind, name = ev["event"], ev["name"]
+        if kind == "on_custom_event":
+            await event_bus.emit(run_id, name, dict(ev["data"]))
+            continue
+        if name not in _NODES or ev["metadata"].get("langgraph_node") != name:
+            continue
+        if kind == "on_chain_start":
+            payload: dict[str, Any] = {"node": name}
+            data = ev["data"].get("input")
+            if isinstance(data, dict) and "index" in data:
+                payload["index"] = data["index"]
+            if name == "writer" and on_writer is not None:
+                await on_writer()
+            await event_bus.emit(run_id, "node_start", payload)
+        elif kind == "on_chain_end":
+            payload = {"node": name}
+            data = ev["data"].get("input")
+            if isinstance(data, dict) and "index" in data:
+                payload["index"] = data["index"]
+            await event_bus.emit(run_id, "node_end", payload)
+
+
 async def _plan(graph: Graph, run_id: uuid.UUID) -> None:
     async with async_session_maker() as db:
         run = await db.get(ResearchRun, run_id)
@@ -75,10 +109,12 @@ async def _plan(graph: Graph, run_id: uuid.UUID) -> None:
             return
         await run_service.transition_run(db, run, RunStatus.PLANNING)
         config = _config(run_id)
-        await graph.ainvoke({"question": run.question, "depth": run.depth.value}, config)
+        await _stream(graph, run_id, {"question": run.question, "depth": run.depth.value})
         state = await graph.aget_state(config)
-        await run_service.replace_plan_items(
-            db, run_id, [(q.text, q.reason) for q in state.values["plan"]]
+        items = [(q.text, q.reason) for q in state.values["plan"]]
+        await run_service.replace_plan_items(db, run_id, items)
+        await event_bus.emit(
+            run_id, "plan_ready", {"items": [{"text": t, "reason": r} for t, r in items]}
         )
         await run_service.transition_run(db, run, RunStatus.AWAITING_APPROVAL)
 
@@ -90,13 +126,12 @@ async def _research(graph: Graph, run_id: uuid.UUID, items: list[tuple[str, str 
         run = await db.get(ResearchRun, run_id)
         if run is None:
             return
-        done = 0
-        async for update in graph.astream(Command(resume=resume), config, stream_mode="updates"):
-            if "research" in update:
-                done += 1
-            reached_writer = done >= len(items) or "writer" in update
-            if reached_writer and run.status is RunStatus.RESEARCHING:
+
+        async def to_writing() -> None:
+            if run.status is RunStatus.RESEARCHING:
                 await run_service.transition_run(db, run, RunStatus.WRITING)
+
+        await _stream(graph, run_id, Command(resume=resume), on_writer=to_writing)
         values = (await graph.aget_state(config)).values
         await run_service.save_result(
             db,
