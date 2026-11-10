@@ -112,6 +112,19 @@ def _day_start(now: datetime) -> datetime:
     return now.astimezone(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
+async def daily_usage(
+    db: AsyncSession, user_id: uuid.UUID, now: datetime | None = None
+) -> tuple[int, int, datetime]:
+    """(runs started today, daily limit, when the day resets) for the Settings page."""
+    start = _day_start(now or datetime.now(UTC))
+    started = await db.scalar(
+        select(func.count(ResearchRun.id)).where(
+            ResearchRun.user_id == user_id, ResearchRun.created_at >= start
+        )
+    )
+    return started or 0, settings.daily_run_limit, start + timedelta(days=1)
+
+
 async def check_daily_limit(
     db: AsyncSession, user_id: uuid.UUID, now: datetime | None = None
 ) -> None:

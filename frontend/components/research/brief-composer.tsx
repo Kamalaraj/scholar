@@ -52,6 +52,7 @@ export function BriefComposer({
 
   return (
     <form
+      id="brief"
       onSubmit={(event) => {
         event.preventDefault();
         submit();

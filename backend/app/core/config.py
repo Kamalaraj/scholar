@@ -30,6 +30,7 @@ class Settings(BaseSettings):
 
     frontend_origin: str = "http://localhost:3000"
     daily_run_limit: int = 5
+    ip_rate_limit_per_minute: int = 240  # 0 turns the per-IP limit off
 
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False

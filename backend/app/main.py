@@ -14,9 +14,12 @@ from app.api.v1.stream import router as stream_router
 from app.api.v1.users import router as users_router
 from app.core.config import settings
 from app.core.logging import configure_logging
+from app.core.middleware import IpRateLimitMiddleware, SecurityHeadersMiddleware
+from app.core.tracing import configure_tracing
 from app.services import run_executor
 
 configure_logging()
+configure_tracing()
 
 
 @asynccontextmanager
@@ -40,6 +43,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Scholar API", version="0.1.0", lifespan=lifespan)
 
+# Added last = outermost: CORS wraps everything (so a browser can read a 429), then the headers.
+app.add_middleware(IpRateLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_origin],

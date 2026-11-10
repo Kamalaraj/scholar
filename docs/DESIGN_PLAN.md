@@ -49,10 +49,12 @@ Defined as CSS variables in `frontend/app/globals.css` and mapped to the shadcn 
 | `--border` | `#E4DED5` | `#3A342C` | Lines |
 | `--primary` (accent) | `#1F5F5B` deep teal | `#5FB3AC` | Main buttons, active stage, links |
 | `--primary-foreground` | `#FFFFFF` | `#0F1F1E` | Text on accent |
-| `--highlight` | `#F6E7B8` | `#4A3F1E` | Citation hover, new item flash |
-| `--success` | `#2E7D4F` | `#5CC28A` | Completed stages |
-| `--warning` | `#B26B00` | `#E0A23C` | Needs your action |
+| `--highlight` | `#F6E7B8` | `#3F3519` | Citation hover, new item flash |
+| `--success` | `#2A7048` | `#5CC28A` | Completed stages |
+| `--warning` | `#8F5600` | `#E0A23C` | Needs your action |
 | `--destructive` | `#B3261E` | `#F2867E` | Errors, delete |
+
+Form-control borders use `--input` (`#8C857A` light, `#7D756A` dark) so a field's edge is 3:1 against the page; `--border` stays a quiet line for cards and dividers. The light `--warning`, `--success` and dark `--highlight` values were darkened in Phase 8 so every text pair reaches 4.5:1 (checked with a script over both themes).
 
 Rules: one accent color only. Color never carries meaning alone; pair it with an icon or label. Check every text pair for 4.5:1 contrast (3:1 for large text and icons).
 

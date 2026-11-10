@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { buttonVariants } from "@/components/ui/button";
+import { WorkspaceIllustration } from "@/components/marketing/workspace-illustration";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const steps = [
@@ -14,10 +15,21 @@ export default function Home() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="flex items-center justify-between border-b border-border px-6 py-4">
         <span className="font-sans text-lg font-semibold">Scholar</span>
-        <ThemeToggle />
+        <nav aria-label="Account" className="flex items-center gap-2">
+          <Link
+            href="/sign-in"
+            className={buttonVariants({ variant: "ghost", className: "min-h-11 sm:min-h-8" })}
+          >
+            Sign in
+          </Link>
+          <ThemeToggle />
+        </nav>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col items-start gap-8 px-6 py-24">
+      <main
+        id="main"
+        className="mx-auto flex max-w-4xl flex-col items-start gap-8 px-6 py-16 sm:py-24"
+      >
         <h1 className="font-serif text-4xl font-semibold leading-tight sm:text-5xl">
           Research briefs, written by a team of agents you direct.
         </h1>
@@ -25,11 +37,13 @@ export default function Home() {
           You write the question. A planner drafts a research plan, you approve it, and agents
           search and read the web to write a cited report.
         </p>
-        <Link href="/sign-in" className={buttonVariants({ size: "lg" })}>
+        <Link href="/sign-in" className={buttonVariants({ size: "lg", className: "min-h-11" })}>
           Start researching
         </Link>
 
-        <ol className="mt-12 grid w-full gap-6 sm:grid-cols-3">
+        <WorkspaceIllustration />
+
+        <ol className="grid w-full gap-6 sm:grid-cols-3">
           {steps.map((step, index) => (
             <li
               key={step.title}

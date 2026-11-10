@@ -64,11 +64,11 @@
   --accent: #f2eee8;
   --accent-foreground: #1c1915;
   --highlight: #f6e7b8;
-  --success: #2e7d4f;
-  --warning: #b26b00;
+  --success: #2a7048;
+  --warning: #8f5600;
   --destructive: #b3261e;
   --border: #e4ded5;
-  --input: #e4ded5;
+  --input: #8c857a;
   --ring: #1f5f5b;
   --radius: 0.5rem;
   --sidebar: #faf8f5;
@@ -97,12 +97,12 @@
   --muted-foreground: #a39b8f;
   --accent: #2a251f;
   --accent-foreground: #ede8e1;
-  --highlight: #4a3f1e;
+  --highlight: #3f3519;
   --success: #5cc28a;
   --warning: #e0a23c;
   --destructive: #f2867e;
   --border: #3a342c;
-  --input: #3a342c;
+  --input: #7d756a;
   --ring: #5fb3ac;
   --sidebar: #16130f;
   --sidebar-foreground: #ede8e1;
@@ -216,4 +216,22 @@
 }
 .report-prose th {
   background: var(--muted);
+}
+
+/* Reduced motion: no slides, spins or zooms; state changes become instant (design plan, motion). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Keyboard users: a 2px focus ring in the accent color on every interactive element. */
+:where(a, button, input, textarea, select, summary, [role="tab"], [role="combobox"]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }

@@ -31,8 +31,12 @@ export function ActivityPanel({
       className="rounded-lg border border-border bg-card p-4"
     >
       <TabsList>
-        <TabsTrigger value="sources">Sources ({sources.length})</TabsTrigger>
-        <TabsTrigger value="activity">Activity</TabsTrigger>
+        <TabsTrigger value="sources" className="text-muted-foreground data-active:text-foreground">
+          Sources ({sources.length})
+        </TabsTrigger>
+        <TabsTrigger value="activity" className="text-muted-foreground data-active:text-foreground">
+          Activity
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="sources">
         {sources.length === 0 ? (

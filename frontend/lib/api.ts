@@ -14,6 +14,7 @@ export type Report = components["schemas"]["ReportOut"];
 export type Source = components["schemas"]["SourceOut"];
 export type RunList = components["schemas"]["RunList"];
 export type RunStatus = Run["status"];
+export type Usage = components["schemas"]["UsageOut"];
 export type Depth = Run["depth"];
 
 export class ApiError extends Error {
@@ -72,6 +73,7 @@ export function useApi() {
   const get = useCallback(() => getToken(), [getToken]);
   return {
     me: () => apiFetch<User>("/me", get),
+    usage: () => apiFetch<Usage>("/me/usage", get),
     createRun: (body: { question: string; depth: Depth }) =>
       apiFetch<Run>("/runs", get, { method: "POST", body: JSON.stringify(body) }),
     listRuns: (cursor?: string | null, filters: RunFilters = {}) =>

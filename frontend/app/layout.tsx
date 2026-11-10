@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 
+import { SkipLink } from "@/components/layout/skip-link";
 import { Providers } from "@/components/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { clerkAppearance } from "@/lib/clerk-appearance";
@@ -38,8 +39,14 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${sourceSerif.variable} ${jetBrainsMono.variable} antialiased`}
       >
-        <ClerkProvider appearance={clerkAppearance} signInUrl="/sign-in" signUpUrl="/sign-up">
+        <ClerkProvider
+          appearance={clerkAppearance}
+          signInUrl="/sign-in"
+          signUpUrl="/sign-up"
+          telemetry={false}
+        >
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <SkipLink />
             <Providers>{children}</Providers>
           </ThemeProvider>
         </ClerkProvider>

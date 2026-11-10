@@ -97,3 +97,8 @@ async def test_stream_requires_auth_and_ownership(
     run_id = await _finished_run(client, user_a)
     assert (await client.get(f"/api/v1/runs/{run_id}/stream")).status_code == 401
     assert (await client.get(f"/api/v1/runs/{run_id}/stream", headers=user_b)).status_code == 404
+
+
+async def _events_of(client: AsyncClient, headers: dict[str, str], run_id: str) -> list[dict]:  # type: ignore[type-arg]
+    """All stored events of a finished run."""
+    return parse_sse((await client.get(f"/api/v1/runs/{run_id}/stream", headers=headers)).text)
