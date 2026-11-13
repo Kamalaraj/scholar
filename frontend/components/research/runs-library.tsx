@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
-import { ExampleChips } from "@/components/research/example-chips";
 import { StatusBadge } from "@/components/research/status-badge";
 import {
   AlertDialog,
@@ -18,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -47,7 +46,7 @@ function RunRow({ run, onDelete }: { run: Run; onDelete: (run: Run) => void }) {
     <li className="relative">
       <Link
         href={`/runs/${run.id}`}
-        className="flex min-h-11 flex-col gap-2 rounded-lg border border-border bg-card p-4 pr-16 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+        className="flex min-h-11 flex-col gap-2 rounded-2xl border border-border bg-card p-4 pr-16 transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
       >
         <span className="line-clamp-2 text-base font-medium">{run.question}</span>
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
@@ -75,7 +74,7 @@ function RunRow({ run, onDelete }: { run: Run; onDelete: (run: Run) => void }) {
   );
 }
 
-export function RunsLibrary({ onPickExample }: { onPickExample: (question: string) => void }) {
+export function RunsLibrary() {
   const api = useApi();
   const queryClient = useQueryClient();
   const searchId = useId();
@@ -106,9 +105,9 @@ export function RunsLibrary({ onPickExample }: { onPickExample: (question: strin
 
   return (
     <section aria-labelledby="library-heading" className="flex flex-col gap-4">
-      <h2 id="library-heading" className="text-xl font-semibold">
+      <h1 id="library-heading" className="text-2xl font-semibold">
         Your reports
-      </h2>
+      </h1>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -176,10 +175,10 @@ export function RunsLibrary({ onPickExample }: { onPickExample: (question: strin
 
       {query.isSuccess && runs.length === 0 && !filtered && (
         <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border p-6">
-          <p className="text-muted-foreground">
-            No reports yet. Write a brief above, or start from an example.
-          </p>
-          <ExampleChips onPick={onPickExample} />
+          <p className="text-muted-foreground">No reports yet. Start your first research.</p>
+          <Link href="/dashboard" className={buttonVariants({ className: "min-h-11 sm:min-h-8" })}>
+            New research
+          </Link>
         </div>
       )}
 

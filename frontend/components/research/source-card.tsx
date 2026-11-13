@@ -43,7 +43,7 @@ export function SourceCard({ source, active }: { source: PanelSource; active?: b
       aria-label={source.num ? `Source ${source.num}: ${source.title}` : source.title}
       data-active={active ? "true" : undefined}
       className={cn(
-        "rounded-lg border border-border bg-card p-3 text-sm transition-colors duration-200",
+        "rounded-xl border border-border bg-card p-3 text-sm transition-colors duration-200",
         active && "border-primary bg-highlight",
       )}
     >

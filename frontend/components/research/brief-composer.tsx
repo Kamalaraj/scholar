@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowUp, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ApiError, useApi, type Depth } from "@/lib/api";
+import { markAutoApprove } from "@/lib/auto-approve";
 import { friendlyError } from "@/lib/rate-limit";
 
 export const MIN_QUESTION_LENGTH = 10;
@@ -19,6 +22,7 @@ const DEPTHS: { value: Depth; label: string; hint: string }[] = [
   { value: "deep", label: "Deep", hint: "about 6 angles, ~3 min" },
 ];
 
+/** The home screen: one big input, depth, and a send button. Submitting opens the run. */
 export function BriefComposer({
   question,
   onQuestionChange,
@@ -27,9 +31,12 @@ export function BriefComposer({
   onQuestionChange: (value: string) => void;
 }) {
   const api = useApi();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [depth, setDepth] = useState<Depth>("quick");
+  const [reviewPlan, setReviewPlan] = useState(true);
   const textareaId = useId();
+  const reviewId = useId();
   const hintId = useId();
 
   const trimmed = question.trim();
@@ -37,9 +44,11 @@ export function BriefComposer({
 
   const createRun = useMutation({
     mutationFn: () => api.createRun({ question: trimmed, depth }),
-    onSuccess: () => {
+    onSuccess: (run) => {
+      if (!reviewPlan) markAutoApprove(run.id);
       onQuestionChange("");
       void queryClient.invalidateQueries({ queryKey: ["runs"] });
+      router.push(`/runs/${run.id}`);
     },
     onError: (error) => {
       toast.error(friendlyError(error, "Could not create the run. Please try again."));
@@ -57,12 +66,18 @@ export function BriefComposer({
         event.preventDefault();
         submit();
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-6"
     >
-      <div className="flex flex-col gap-2">
-        <label htmlFor={textareaId} className="text-base font-semibold">
+      <div className="flex flex-col gap-3 text-center">
+        <label htmlFor={textareaId} className="text-3xl font-semibold tracking-tight sm:text-4xl">
           What do you want to find out?
         </label>
+        <p className="text-muted-foreground">
+          Ask a question. Scholar searches the web and writes a cited report.
+        </p>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-3 shadow-sm focus-within:border-input">
         <Textarea
           id={textareaId}
           value={question}
@@ -77,51 +92,67 @@ export function BriefComposer({
           maxLength={MAX_QUESTION_LENGTH}
           placeholder="e.g. What are the main approaches to recycling EV batteries?"
           aria-describedby={hintId}
-          className="max-h-52 min-h-[5.5rem] resize-none bg-card"
+          className="max-h-52 min-h-[4.5rem] resize-none border-0 bg-transparent px-2 py-1 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
-        <p id={hintId} className="text-sm text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <ToggleGroup
+            aria-label="Research depth"
+            value={[depth]}
+            onValueChange={(values) => {
+              if (values[0]) setDepth(values[0] as Depth);
+            }}
+            variant="outline"
+            className="rounded-full"
+          >
+            {DEPTHS.map((option) => (
+              <ToggleGroupItem
+                key={option.value}
+                value={option.value}
+                title={option.hint}
+                className="min-h-11 rounded-full px-4 aria-pressed:bg-accent sm:min-h-8"
+              >
+                {option.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Button
+            type="submit"
+            size="icon"
+            aria-label="Draft a plan"
+            disabled={!canSubmit || createRun.isPending}
+            className="size-11 rounded-full sm:size-9"
+          >
+            {createRun.isPending ? (
+              <Loader2 aria-hidden="true" className="motion-safe:animate-spin" />
+            ) : (
+              <ArrowUp aria-hidden="true" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground">
+        <p id={hintId}>
           {trimmed.length < MIN_QUESTION_LENGTH
             ? `Write at least ${MIN_QUESTION_LENGTH} characters.`
-            : "Press Ctrl or Cmd + Enter to draft a plan."}
+            : "Press Ctrl or Cmd + Enter to send."}
         </p>
+        <label htmlFor={reviewId} className="flex min-h-11 items-center gap-2 sm:min-h-8">
+          <input
+            id={reviewId}
+            type="checkbox"
+            checked={reviewPlan}
+            onChange={(event) => setReviewPlan(event.target.checked)}
+            className="size-4 accent-primary"
+          />
+          Review the plan before research starts
+        </label>
       </div>
 
       <ExampleChips onPick={onQuestionChange} />
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <ToggleGroup
-          aria-label="Research depth"
-          value={[depth]}
-          onValueChange={(values) => {
-            if (values[0]) setDepth(values[0] as Depth);
-          }}
-          variant="outline"
-          className="flex-col items-stretch sm:flex-row"
-        >
-          {DEPTHS.map((option) => (
-            <ToggleGroupItem
-              key={option.value}
-              value={option.value}
-              className="h-auto min-h-11 flex-col items-start gap-0 px-3 py-1.5 aria-pressed:border-primary aria-pressed:ring-1 aria-pressed:ring-primary sm:items-center"
-            >
-              <span className="font-medium">{option.label}</span>
-              <span className="text-xs font-normal text-muted-foreground">{option.hint}</span>
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-
-        <Button
-          type="submit"
-          size="lg"
-          disabled={!canSubmit || createRun.isPending}
-          className="min-h-11 sm:min-h-9"
-        >
-          {createRun.isPending ? "Drafting…" : "Draft a plan"}
-        </Button>
-      </div>
-
       {createRun.error instanceof ApiError && createRun.error.status === 429 && (
-        <p role="alert" className="rounded-lg border border-warning bg-card p-3 text-sm">
+        <p role="alert" className="rounded-2xl border border-warning bg-card p-3 text-sm">
           {friendlyError(createRun.error, "You have reached today's limit.")}
         </p>
       )}

@@ -13,9 +13,14 @@ export default function NotFound() {
       <p className="text-muted-foreground">
         The link may be old, or the page may have moved. Your reports are on your desk.
       </p>
-      <Link href="/dashboard" className={buttonVariants()}>
-        Go to your desk
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/dashboard" className={buttonVariants()}>
+          Go to your desk
+        </Link>
+        <Link href="/" className={buttonVariants({ variant: "ghost" })}>
+          Back to home
+        </Link>
+      </div>
     </main>
   );
 }

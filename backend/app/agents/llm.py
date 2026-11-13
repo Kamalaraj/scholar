@@ -5,7 +5,6 @@ import re
 from collections.abc import AsyncIterator, Iterator
 from typing import Any, Literal
 
-from groq import RateLimitError
 from langchain_core.callbacks import AsyncCallbackManagerForLLMRun, CallbackManagerForLLMRun
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage
@@ -36,6 +35,21 @@ def _groq_model(kind: Kind, api_key: str, max_retries: int) -> BaseChatModel:
     )
 
 
+def _openrouter_model(kind: Kind) -> BaseChatModel:
+    from langchain_openai import ChatOpenAI  # OpenRouter speaks the OpenAI API; only used here
+
+    return ChatOpenAI(
+        model=settings.openrouter_strong_model
+        if kind == "strong"
+        else settings.openrouter_fast_model,
+        api_key=SecretStr(settings.openrouter_api_key),
+        base_url="https://openrouter.ai/api/v1",
+        temperature=0.2,
+        max_retries=1,
+        timeout=60,
+    )
+
+
 def get_llm(kind: Kind) -> LLM:
     """The only place chat models are created.
 
@@ -45,15 +59,20 @@ def get_llm(kind: Kind) -> LLM:
     if settings.llm_provider == "fake":
         return FakeChatModel()
     keys = settings.groq_keys
-    if not keys:
-        raise RuntimeError("No Groq API key configured (set GROQ_API_KEY or GROQ_API_KEYS)")
-    if len(keys) == 1:
-        return _groq_model(kind, keys[0], max_retries=3)
-    start = next(_key_cursor) % len(keys)
+    extras: list[BaseChatModel] = []
+    if settings.openrouter_api_key:
+        extras.append(_openrouter_model(kind))
+    if not keys and not extras:
+        raise RuntimeError("No LLM key configured (set GROQ_API_KEY or OPENROUTER_API_KEY)")
+    start = next(_key_cursor) % len(keys) if keys else 0
     ordered = keys[start:] + keys[:start]
-    # Fail over quickly: one SDK retry per key, then move on to the next key.
-    models = [_groq_model(kind, k, max_retries=1) for k in ordered]
-    return models[0].with_fallbacks(models[1:], exceptions_to_handle=(RateLimitError,))
+    # With spare keys or other providers behind it, fail over quickly: one SDK retry per key.
+    retries = 3 if len(keys) == 1 and not extras else 1
+    models = [_groq_model(kind, k, max_retries=retries) for k in ordered] + extras
+    if len(models) == 1:
+        return models[0]
+    # Fallbacks are other providers with their own error types, so any call error moves on.
+    return models[0].with_fallbacks(models[1:], exceptions_to_handle=(Exception,))
 
 
 class StructuredOutputError(Exception):

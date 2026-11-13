@@ -43,6 +43,8 @@ export default function RootLayout({
           appearance={clerkAppearance}
           signInUrl="/sign-in"
           signUpUrl="/sign-up"
+          signInFallbackRedirectUrl="/dashboard"
+          signUpFallbackRedirectUrl="/dashboard"
           telemetry={false}
         >
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

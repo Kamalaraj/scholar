@@ -4,7 +4,7 @@ import { Desk } from "@/components/research/desk";
 export default function DashboardPage() {
   return (
     <AppShell>
-      <h1 className="sr-only">Your desk</h1>
+      <h1 className="sr-only">New research</h1>
       <Desk />
     </AppShell>
   );

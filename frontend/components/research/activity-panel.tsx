@@ -16,6 +16,7 @@ export function ActivityPanel({
   activeNum,
   tab,
   onTabChange,
+  className,
 }: {
   activity: ActivityEntry[];
   sources: PanelSource[];
@@ -23,13 +24,10 @@ export function ActivityPanel({
   activeNum?: number | null;
   tab: PanelTab;
   onTabChange: (tab: PanelTab) => void;
+  className?: string;
 }) {
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(v) => onTabChange(v as PanelTab)}
-      className="rounded-lg border border-border bg-card p-4"
-    >
+    <Tabs value={tab} onValueChange={(v) => onTabChange(v as PanelTab)} className={className}>
       <TabsList>
         <TabsTrigger value="sources" className="text-muted-foreground data-active:text-foreground">
           Sources ({sources.length})

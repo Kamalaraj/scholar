@@ -194,7 +194,7 @@ Tasks:
 - Neon Postgres 17 with pgvector; run migrations as a release step.
 - Backend on Render or Fly.io (long-lived process, not serverless). Secrets set in the host.
 - Frontend on Vercel. Clerk production instance and allowed origins. CORS only for the Vercel domain.
-- LangSmith tracing on in production. Health check wired to the host.
+- Langfuse tracing on in production. Health check wired to the host.
 - README: demo GIF, architecture diagram, agent graph (`draw_mermaid()`), setup steps, design decisions, measured numbers (time and cost per report).
 
 Exit criteria:

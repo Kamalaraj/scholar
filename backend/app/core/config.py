@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     tavily_api_key: str = ""
     groq_strong_model: str = "llama-3.3-70b-versatile"
     groq_fast_model: str = "llama-3.1-8b-instant"
+    openrouter_api_key: str = ""  # optional last-resort fallback (free models)
+    openrouter_strong_model: str = "google/gemma-4-31b-it:free"
+    openrouter_fast_model: str = "google/gemma-4-26b-a4b-it:free"
     llm_provider: str = "fake"
     search_provider: str = "fake"
     fake_step_delay_ms: int = 0
@@ -32,8 +35,11 @@ class Settings(BaseSettings):
     daily_run_limit: int = 5
     ip_rate_limit_per_minute: int = 240  # 0 turns the per-IP limit off
 
-    langsmith_api_key: str = ""
-    langsmith_tracing: bool = False
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_tracing_environment: str = "development"  # production, staging or development
+    langfuse_release: str = ""
 
     @property
     def groq_keys(self) -> list[str]:

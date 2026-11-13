@@ -15,6 +15,7 @@ from app.agents.budget import BudgetExceededError, TokenBudget, current_budget
 from app.agents.state import SubQuestion
 from app.agents.types import ResearchGraph as Graph
 from app.core.config import settings
+from app.core.tracing import langfuse_callbacks, langfuse_enabled, langfuse_metadata
 from app.db.models import ResearchRun, RunStatus
 from app.db.session import async_session_maker
 from app.services import event_bus, run_service
@@ -120,7 +121,13 @@ async def _stream(
     on_writer: Callable[[], Awaitable[None]] | None = None,
 ) -> None:
     """Run the graph, turning LangGraph events into app events."""
-    async for ev in graph.astream_events(graph_input, _config(run_id), version="v2"):
+    config = _config(run_id)
+    if langfuse_enabled():
+        owner = str(await _owner_of(run_id))
+        config["run_name"] = "research-run"
+        config["callbacks"] = langfuse_callbacks(str(run_id), owner)
+        config["metadata"] = langfuse_metadata(str(run_id), owner)
+    async for ev in graph.astream_events(graph_input, config, version="v2"):
         kind, name = ev["event"], ev["name"]
         if kind == "on_custom_event":
             await event_bus.emit(run_id, name, dict(ev["data"]))

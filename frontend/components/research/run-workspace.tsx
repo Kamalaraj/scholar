@@ -2,14 +2,15 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 import { ActivityPanel, type PanelTab } from "@/components/research/activity-panel";
 import { ProgressRail, StreamNotice } from "@/components/research/progress-rail";
 import { CancelRunButton, RunStopped } from "@/components/research/run-actions";
 import { ResearchFloor } from "@/components/research/research-floor";
-import { SourceCard, type PanelSource } from "@/components/research/source-card";
+import type { PanelSource } from "@/components/research/source-card";
 import { StatusBadge } from "@/components/research/status-badge";
 import {
   Sheet,
@@ -18,23 +19,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRunStream } from "@/hooks/use-run-stream";
 import { ApiError, useApi, type PlanAction, type RunStatus } from "@/lib/api";
+import { clearAutoApprove, wantsAutoApprove } from "@/lib/auto-approve";
 import type { PlanEntry } from "@/lib/run-events";
 import { formatRelative } from "@/lib/utils";
 
 // dnd-kit only loads when a plan is actually waiting for review.
 const PlanBoard = dynamic(
   () => import("@/components/research/plan-board").then((m) => m.PlanBoard),
-  { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-lg" /> },
+  { ssr: false, loading: () => <Skeleton className="h-64 w-full rounded-2xl" /> },
 );
 
 // react-markdown and remark-gfm only load once there is a report to read.
 const ReportView = dynamic(
   () => import("@/components/research/report-view").then((m) => m.ReportView),
-  { ssr: false, loading: () => <Skeleton className="h-96 w-full rounded-lg" /> },
+  { ssr: false, loading: () => <Skeleton className="h-96 w-full rounded-2xl" /> },
 );
 
 type Optimistic = { status: RunStatus; plan?: PlanEntry[]; atSeq: number };
@@ -50,26 +52,22 @@ export function RunWorkspace({ runId }: { runId: string }) {
   const [tab, setTab] = useState<PanelTab>("sources");
   const [hoverNum, setHoverNum] = useState<number | null>(null);
   const [clickedNum, setClickedNum] = useState<number | null>(null);
-  const [sheetNum, setSheetNum] = useState<number | null>(null);
-  const panelBesideReport = useMediaQuery("(min-width: 1280px)");
+  const [panelOpen, setPanelOpen] = useState(false);
   // Stable on purpose: the report re-renders its citations whenever this changes.
-  const openSource = useCallback(
-    (num: number) => {
-      setClickedNum(num);
-      if (panelBesideReport) {
-        setTab("sources");
-        // Wait for the Sources tab to render before scrolling to the card.
-        requestAnimationFrame(() =>
-          document
-            .getElementById(`source-${num}`)
-            ?.scrollIntoView({ block: "center", behavior: "smooth" }),
-        );
-      } else {
-        setSheetNum(num);
-      }
-    },
-    [panelBesideReport],
-  );
+  const openSource = useCallback((num: number) => {
+    setClickedNum(num);
+    setTab("sources");
+    // At xl+ the sources column is always visible; only smaller screens need the sheet.
+    setPanelOpen(!window.matchMedia("(min-width: 1280px)").matches);
+    // Wait for the panel to render before scrolling to the card.
+    setTimeout(
+      () =>
+        document
+          .getElementById(`source-${num}`)
+          ?.scrollIntoView({ block: "center", behavior: "smooth" }),
+      150,
+    );
+  }, []);
   const [now, setNow] = useState(() => Date.now());
   // What we show before the server confirms a decision; rolled back if the request fails.
   const [guess, setOptimistic] = useState<Optimistic | null>(null);
@@ -95,6 +93,23 @@ export function RunWorkspace({ runId }: { runId: string }) {
     },
   });
 
+  const autoFired = useRef(false);
+  const awaiting = serverStatus === "awaiting_approval";
+  const streamPlan = view.plan;
+  const savedRunPlan = data?.plan;
+  const { mutate: decideMutate } = decide;
+  useEffect(() => {
+    if (!awaiting || autoFired.current || !wantsAutoApprove(runId)) return;
+    const items = streamPlan.length > 0 ? streamPlan : (savedRunPlan ?? []);
+    if (items.length === 0) return;
+    autoFired.current = true;
+    clearAutoApprove(runId);
+    decideMutate({
+      action: "approve",
+      items: items.map((p) => ({ text: p.text, reason: p.reason ?? null })),
+    });
+  }, [awaiting, streamPlan, savedRunPlan, runId, decideMutate]);
+
   const live = status !== "completed" && status !== "failed" && status !== "cancelled";
 
   useEffect(() => {
@@ -108,11 +123,11 @@ export function RunWorkspace({ runId }: { runId: string }) {
     if (view.status === "completed" || view.status === "failed") void refetch();
   }, [view.status, refetch]);
 
-  if (isPending) return <Skeleton className="h-64 w-full rounded-lg" />;
+  if (isPending) return <Skeleton className="h-64 w-full rounded-2xl" />;
 
   if (error instanceof ApiError && error.status === 404) {
     return (
-      <div role="alert" className="rounded-lg border border-border bg-card p-6">
+      <div role="alert" className="rounded-2xl border border-border bg-card p-6">
         <h1 className="text-xl font-semibold">Report not found</h1>
         <p className="mt-2 text-muted-foreground">
           This report does not exist, or it belongs to another account.
@@ -122,7 +137,7 @@ export function RunWorkspace({ runId }: { runId: string }) {
   }
   if (error) {
     return (
-      <div role="alert" className="rounded-lg border border-border bg-card p-6">
+      <div role="alert" className="rounded-2xl border border-border bg-card p-6">
         <h1 className="text-xl font-semibold">We could not load this report</h1>
         <button className="mt-3 underline" onClick={() => refetch()}>
           Retry
@@ -146,111 +161,146 @@ export function RunWorkspace({ runId }: { runId: string }) {
           num: src.citation_num,
         }))
       : view.lanes.flatMap((l) => l.sources);
-  const sheetSource = panelSources.find((src) => src.num === sheetNum);
   const failure = view.error ?? data.error;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <StatusBadge status={status} />
-        <h1 className="text-2xl font-semibold">{data.question}</h1>
-        <p className="text-sm text-muted-foreground">
-          {data.depth === "deep" ? "Deep" : "Quick"} · started {formatRelative(data.created_at)}
+    <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start xl:gap-8 2xl:grid-cols-[minmax(0,1fr)_28rem]">
+      <div className="flex min-w-0 flex-col gap-6">
+        <header className="flex flex-col gap-3">
+          <div className="flex items-start justify-between gap-3">
+            <StatusBadge status={status} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11 rounded-full sm:min-h-8 xl:hidden"
+              onClick={() => {
+                setTab("sources");
+                setPanelOpen(true);
+              }}
+            >
+              <BookOpen aria-hidden="true" />
+              Sources ({panelSources.length})
+            </Button>
+          </div>
+          <h1 className="ml-auto max-w-[85%] rounded-3xl bg-muted px-4 py-3 text-base font-medium">
+            {data.question}
+          </h1>
+          <p className="text-right text-xs text-muted-foreground">
+            {data.depth === "deep" ? "Deep" : "Quick"} · started {formatRelative(data.created_at)}
+          </p>
+        </header>
+
+        {/* Announces stage changes only, never individual events. */}
+        <p aria-live="polite" className="sr-only">
+          {status.replace("_", " ")}
         </p>
-      </header>
 
-      {/* Announces stage changes only, never individual events. */}
-      <p aria-live="polite" className="sr-only">
-        {status.replace("_", " ")}
-      </p>
+        {connection === "reconnecting" && <StreamNotice>Reconnecting…</StreamNotice>}
 
-      {connection === "reconnecting" && <StreamNotice>Reconnecting…</StreamNotice>}
+        <div className="flex flex-col gap-6">
+          <ProgressRail
+            view={{ ...view, status }}
+            now={now}
+            footer={live ? <CancelRunButton runId={runId} /> : undefined}
+          />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] xl:grid-cols-[15rem_minmax(0,1fr)_20rem]">
-        <ProgressRail
-          view={{ ...view, status }}
-          now={now}
-          footer={live ? <CancelRunButton runId={runId} /> : undefined}
-        />
-
-        <div className="flex min-w-0 flex-col gap-6">
-          {status === "failed" && (
-            <RunStopped runId={runId} kind="failed" message={failure} at={view.endedAt} />
-          )}
-          {status === "cancelled" && (
-            <RunStopped
-              runId={runId}
-              kind="cancelled"
-              message={null}
-              at={view.endedAt ?? data.completed_at}
-            />
-          )}
-          {serverStatus === "awaiting_approval" && (
-            <div hidden={optimistic !== null}>
-              <PlanBoard
-                key={view.planSeq}
-                question={data.question}
-                plan={savedPlan}
-                busy={decide.isPending}
-                error={decide.error instanceof ApiError ? decide.error.message : null}
-                onApprove={(items) => decide.mutate({ action: "approve", items })}
-                onReplan={(feedback) => decide.mutate({ action: "replan", feedback })}
-              />
-            </div>
-          )}
-          {status === "planning" && (
-            <div role="status" className="rounded-lg border border-border bg-card p-4">
-              <h2 className="font-semibold">Drafting the plan</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                The planner is breaking your question into angles.
-              </p>
-              <Skeleton className="mt-3 h-16 w-full rounded-lg" />
-            </div>
-          )}
-          {(view.lanes.length > 0 || status === "researching" || status === "writing") &&
-            status !== "completed" && (
-              <ResearchFloor
-                plan={plan}
-                lanes={view.lanes}
-                stopped={status === "cancelled" || status === "failed"}
+          <div className="flex min-w-0 flex-col gap-6">
+            {status === "failed" && (
+              <RunStopped runId={runId} kind="failed" message={failure} at={view.endedAt} />
+            )}
+            {status === "cancelled" && (
+              <RunStopped
+                runId={runId}
+                kind="cancelled"
+                message={null}
+                at={view.endedAt ?? data.completed_at}
               />
             )}
-          {status === "writing" && (
-            <div role="status" className="rounded-lg border border-border bg-card p-4">
-              <h2 className="font-semibold">Writing the report</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                The sources are collected. The report appears here as soon as it is written.
-              </p>
-            </div>
-          )}
-          {status === "completed" && !data.report && (
-            <Skeleton className="h-96 w-full rounded-lg" />
-          )}
-          {status === "completed" && data.report && (
-            <ReportView
-              runId={runId}
-              question={data.question}
-              depth={data.depth}
-              date={data.completed_at ?? data.created_at}
-              report={data.report}
-              sources={data.sources ?? []}
-              onHighlight={setHoverNum}
-              onOpen={openSource}
-            />
-          )}
-          {status === "completed" && view.lanes.length > 0 && (
-            <details className="group rounded-lg border border-border bg-card p-4">
-              <summary className="cursor-pointer text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none">
-                Research details ({view.lanes.length} angles, {data.source_count} sources)
-              </summary>
-              <div className="mt-4">
-                <ResearchFloor plan={plan} lanes={view.lanes} />
+            {serverStatus === "awaiting_approval" && (
+              <div hidden={optimistic !== null}>
+                <PlanBoard
+                  key={view.planSeq}
+                  question={data.question}
+                  plan={savedPlan}
+                  busy={decide.isPending}
+                  error={decide.error instanceof ApiError ? decide.error.message : null}
+                  onApprove={(items) => decide.mutate({ action: "approve", items })}
+                  onReplan={(feedback) => decide.mutate({ action: "replan", feedback })}
+                />
               </div>
-            </details>
-          )}
+            )}
+            {status === "planning" && (
+              <div role="status" className="rounded-2xl border border-border bg-card p-4">
+                <h2 className="font-semibold">Drafting the plan</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The planner is breaking your question into angles.
+                </p>
+                <Skeleton className="mt-3 h-16 w-full rounded-2xl" />
+              </div>
+            )}
+            {(view.lanes.length > 0 || status === "researching" || status === "writing") &&
+              status !== "completed" && (
+                <ResearchFloor
+                  plan={plan}
+                  lanes={view.lanes}
+                  stopped={status === "cancelled" || status === "failed"}
+                />
+              )}
+            {status === "writing" && (
+              <div role="status" className="rounded-2xl border border-border bg-card p-4">
+                <h2 className="font-semibold">Writing the report</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  The sources are collected. The report appears here as soon as it is written.
+                </p>
+              </div>
+            )}
+            {status === "completed" && !data.report && (
+              <Skeleton className="h-96 w-full rounded-2xl" />
+            )}
+            {status === "completed" && data.report && (
+              <ReportView
+                runId={runId}
+                question={data.question}
+                depth={data.depth}
+                date={data.completed_at ?? data.created_at}
+                report={data.report}
+                sources={data.sources ?? []}
+                onHighlight={setHoverNum}
+                onOpen={openSource}
+              />
+            )}
+            {status === "completed" && view.lanes.length > 0 && (
+              <details className="group rounded-2xl border border-border bg-card p-4">
+                <summary className="cursor-pointer text-sm font-semibold focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none">
+                  Research details ({view.lanes.length} angles, {data.source_count} sources)
+                </summary>
+                <div className="mt-4">
+                  <ResearchFloor plan={plan} lanes={view.lanes} />
+                </div>
+              </details>
+            )}
+          </div>
         </div>
-
-        <aside className="min-w-0 lg:col-span-2 xl:col-span-1">
+      </div>
+      {/* Desktop: sources live in a persistent right column. Below xl they open as a sheet. */}
+      <aside
+        aria-label="Sources and activity"
+        className="sticky top-6 hidden max-h-[calc(100dvh-3rem)] overflow-y-auto rounded-2xl border border-border bg-card p-4 xl:block"
+      >
+        <ActivityPanel
+          activity={view.activity}
+          sources={panelSources}
+          activeNum={hoverNum ?? clickedNum}
+          tab={tab}
+          onTabChange={setTab}
+        />
+      </aside>
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto p-4 sm:max-w-md xl:hidden">
+          <SheetHeader className="p-0">
+            <SheetTitle>Sources and activity</SheetTitle>
+            <SheetDescription>Where the report comes from, and what happened.</SheetDescription>
+          </SheetHeader>
           <ActivityPanel
             activity={view.activity}
             sources={panelSources}
@@ -258,15 +308,6 @@ export function RunWorkspace({ runId }: { runId: string }) {
             tab={tab}
             onTabChange={setTab}
           />
-        </aside>
-      </div>
-      <Sheet open={sheetSource !== undefined} onOpenChange={(open) => !open && setSheetNum(null)}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto p-4">
-          <SheetHeader className="p-0">
-            <SheetTitle>Source {sheetSource?.num}</SheetTitle>
-            <SheetDescription>Where this claim in the report comes from.</SheetDescription>
-          </SheetHeader>
-          {sheetSource && <SourceCard source={sheetSource} />}
         </SheetContent>
       </Sheet>
     </div>

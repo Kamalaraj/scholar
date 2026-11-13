@@ -35,7 +35,7 @@ function elapsed(view: RunView, now: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** Five named stages with a status line each; the current stage is the only accent. */
+/** Compact stepper: five named stages in a row, then the current stage's status line. */
 export function ProgressRail({
   view,
   now,
@@ -43,67 +43,67 @@ export function ProgressRail({
 }: {
   view: RunView;
   now: number;
-  /** Actions under the stages, such as Cancel run. */
+  /** Actions beside the status line, such as Cancel run. */
   footer?: React.ReactNode;
 }) {
   const stages = deriveStages(view);
+  const focus = stages.find((s) => s.state === "needs_action" || s.state === "current");
   return (
-    <nav aria-label="Progress" className="min-w-0">
-      <ol className="relative flex gap-2 overflow-x-auto lg:flex-col lg:gap-1 lg:overflow-visible">
-        {stages.map((stage) => {
+    <nav aria-label="Progress" className="flex min-w-0 flex-col gap-3">
+      <ol className="flex items-center gap-1">
+        {stages.map((stage, index) => {
           const { icon: Icon, className, label } = MARK[stage.state];
-          const current = stage.state === "current" || stage.state === "needs_action";
+          const current = stage === focus;
           return (
             <li
               key={stage.id}
               aria-current={current ? "step" : undefined}
-              className={cn(
-                "flex min-w-[7.5rem] items-start gap-3 rounded-md px-3 py-2 lg:min-w-0",
-                current && "bg-muted",
-              )}
+              className="flex min-w-0 flex-1 items-center gap-1"
             >
-              <span
-                className={cn(
-                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border",
-                  className,
-                )}
-              >
-                <Icon aria-hidden="true" className="size-3" />
-                <span className="sr-only">{label}</span>
-              </span>
-              <span className="flex flex-col">
+              <span className="flex min-w-0 items-center gap-1.5">
                 <span
                   className={cn(
-                    "text-sm font-semibold",
+                    "flex size-5 shrink-0 items-center justify-center rounded-full border",
+                    className,
+                  )}
+                >
+                  <Icon aria-hidden="true" className="size-3" />
+                  <span className="sr-only">{label}</span>
+                </span>
+                <span
+                  className={cn(
+                    "truncate text-xs font-medium",
+                    !current && "hidden sm:inline",
                     stage.state === "upcoming" && "text-muted-foreground",
                   )}
                 >
                   {stage.label}
                 </span>
-                <span
-                  className={cn(
-                    "text-xs text-muted-foreground",
-                    stage.state === "needs_action" && "font-medium text-warning",
-                  )}
-                >
-                  {stage.state === "needs_action" ? `Your turn · ${stage.line}` : stage.line}
-                </span>
               </span>
+              {index < stages.length - 1 && (
+                <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-border" />
+              )}
             </li>
           );
         })}
       </ol>
-      <dl className="mt-4 hidden gap-1 border-t border-border px-3 pt-4 text-sm lg:grid">
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Elapsed</dt>
-          <dd className="font-mono text-[13px]">{elapsed(view, now)}</dd>
-        </div>
-        <div className="flex justify-between">
-          <dt className="text-muted-foreground">Sources found</dt>
-          <dd className="font-mono text-[13px]">{view.sourceCount}</dd>
-        </div>
-      </dl>
-      {footer && <div className="mt-4 px-3">{footer}</div>}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
+        <p
+          className={cn(
+            "text-muted-foreground",
+            focus?.state === "needs_action" && "font-medium text-warning",
+          )}
+        >
+          {focus
+            ? `${focus.state === "needs_action" ? "Your turn · " : ""}${focus.line}`
+            : "\u00a0"}
+          <span className="ml-3 font-mono text-[13px]">
+            {elapsed(view, now)} · {view.sourceCount}{" "}
+            {view.sourceCount === 1 ? "source" : "sources"}
+          </span>
+        </p>
+        {footer}
+      </div>
     </nav>
   );
 }

@@ -15,11 +15,10 @@ from app.api.v1.users import router as users_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.middleware import IpRateLimitMiddleware, SecurityHeadersMiddleware
-from app.core.tracing import configure_tracing
+from app.core.tracing import flush_langfuse
 from app.services import run_executor
 
 configure_logging()
-configure_tracing()
 
 
 @asynccontextmanager
@@ -38,6 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        flush_langfuse()
         await pool.close()
 
 
