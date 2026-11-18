@@ -1,9 +1,14 @@
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Repo-root .env (also works from any working directory); ignored if missing, e.g. in Docker.
 _ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
+
+
+def _unquote(value: str) -> str:
+    return value.strip().strip("\"'").strip()
 
 
 class Settings(BaseSettings):
@@ -41,10 +46,19 @@ class Settings(BaseSettings):
     langfuse_tracing_environment: str = "development"  # production, staging or development
     langfuse_release: str = ""
 
+    @field_validator(
+        "groq_api_key", "groq_api_keys", "tavily_api_key", "openrouter_api_key", mode="after"
+    )
+    @classmethod
+    def _clean_key(cls, value: str) -> str:
+        """Hosts keep pasted quotes and newlines literally, and providers reject such keys."""
+        return ",".join(_unquote(part) for part in value.split(",")) if value else value
+
     @property
     def groq_keys(self) -> list[str]:
-        listed = [k.strip() for k in self.groq_api_keys.split(",") if k.strip()]
-        keys = [self.groq_api_key, *listed] if self.groq_api_key else listed
+        listed = [_unquote(k) for k in self.groq_api_keys.split(",")]
+        keys = [_unquote(self.groq_api_key), *listed]
+        keys = [k for k in keys if k]
         return list(dict.fromkeys(keys))  # drop duplicates, keep order
 
 

@@ -57,3 +57,57 @@ def test_openrouter_only_works_without_groq(monkeypatch: pytest.MonkeyPatch) -> 
     monkeypatch.setattr(settings, "groq_api_keys", "")
     monkeypatch.setattr(settings, "openrouter_api_key", "o0")
     assert type(llm.get_llm("strong")).__name__ == "ChatOpenAI"
+
+
+class _KeyedModel(llm.FakeChatModel):
+    """Stands in for ChatGroq: fails like Groq does for keys starting with 'bad'."""
+
+    key: str = ""
+
+    def _answer(self, messages):  # type: ignore[no-untyped-def]
+        if self.key.startswith("bad"):
+            raise RuntimeError(f"Error code: 401 - Invalid API Key ({self.key})")
+        from langchain_core.messages import AIMessage
+
+        return AIMessage(content=self.key)
+
+
+@pytest.fixture
+def keyed_models(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        llm, "_groq_model", lambda kind, api_key, max_retries: _KeyedModel(key=api_key)
+    )
+
+
+@pytest.mark.usefixtures("keyed_models")
+async def test_invalid_key_falls_back_to_the_next_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "groq_api_key", "bad-primary")
+    monkeypatch.setattr(settings, "groq_api_keys", "good-fallback")
+    for _ in range(2):  # whichever key leads, the call ends on the good one
+        reply = await llm.get_llm("strong").ainvoke("hi")
+        assert reply.content == "good-fallback"
+
+
+@pytest.mark.usefixtures("keyed_models")
+async def test_fallback_also_works_when_streaming(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The run executor drives the graph with astream_events, which streams chat models.
+    monkeypatch.setattr(settings, "groq_api_key", "bad-primary")
+    monkeypatch.setattr(settings, "groq_api_keys", "good-fallback")
+    for _ in range(2):
+        chunks = [c async for c in llm.get_llm("fast").astream("hi")]
+        assert "".join(str(c.content) for c in chunks) == "good-fallback"
+
+
+@pytest.mark.usefixtures("keyed_models")
+async def test_all_keys_bad_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "groq_api_key", "bad-1")
+    monkeypatch.setattr(settings, "groq_api_keys", "bad-2")
+    with pytest.raises(RuntimeError, match="Invalid API Key"):
+        await llm.get_llm("fast").ainvoke("hi")
+
+
+def test_keys_pasted_with_quotes_or_spaces_are_cleaned(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Host dashboards keep quotes literally, which Groq rejects as an invalid key.
+    monkeypatch.setattr(settings, "groq_api_key", ' "k0"\n')
+    monkeypatch.setattr(settings, "groq_api_keys", "'k1', \"k2\" ")
+    assert settings.groq_keys == ["k0", "k1", "k2"]
