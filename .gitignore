@@ -53,3 +53,4 @@ npm-debug.log*
 
 # Docker volumes (local data)
 backend/pgdata/
+.neon

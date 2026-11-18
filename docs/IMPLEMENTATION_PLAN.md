@@ -46,8 +46,8 @@ Do not start a phase until the previous gate passes.
 **Goal:** an empty but runnable monorepo where every tool works, so later phases only add features.
 
 Tasks:
-- Monorepo layout from CLAUDE.md: `backend/`, `frontend/`, `docs/`, `docker-compose.yml`, `.env.example`.
-- `docker-compose.yml` with `db` (pgvector/pgvector:pg17, healthcheck, named volume), `backend`, `frontend`.
+- Monorepo layout from CLAUDE.md: `backend/`, `frontend/`, `docs/`, `docker/` (compose + Dockerfiles), `.env.example`.
+- `docker/docker-compose.yml` with `db` (pgvector/pgvector:pg17, healthcheck, named volume), `backend`, `frontend`.
 - Backend: `uv init`, FastAPI app with `GET /api/v1/health` (returns `{status, db}` after a `SELECT 1`), pydantic-settings config, structured logging, CORS limited to `FRONTEND_ORIGIN`.
 - Backend tooling: ruff (lint + format), mypy (strict on `app/`), pytest + pytest-asyncio + httpx `AsyncClient`.
 - Frontend: `create-next-app` (TS, App Router, Tailwind), `shadcn init`, design tokens from [DESIGN_PLAN.md](./DESIGN_PLAN.md) in `globals.css`, fonts via `next/font`, `next-themes`.
@@ -58,7 +58,7 @@ Tasks:
 - `Makefile` or `justfile` with `dev`, `test`, `lint`, `e2e`, `db-up`, `migrate`.
 
 Exit criteria:
-- `docker compose up -d db` then `make dev` starts both apps.
+- `make db-up` then `make dev` starts both apps.
 - `GET /api/v1/health` returns `{"status":"ok","db":"ok"}`.
 - Landing page renders with the design tokens and theme toggle.
 - CI is green.

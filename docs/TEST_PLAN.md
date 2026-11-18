@@ -49,7 +49,7 @@ The fake planner always returns 3 subquestions for "quick". The fake writer cite
 ### Start the stack for a gate
 
 ```bash
-docker compose up -d db
+make db-up
 make migrate
 make dev          # backend :8000, frontend :3000, using .env.test
 ```
