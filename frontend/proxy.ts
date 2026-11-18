@@ -1,11 +1,23 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-const isProtectedRoute = createRouteMatcher(["/dashboard(.*)", "/runs(.*)", "/settings(.*)"]);
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/library(.*)",
+  "/runs(.*)",
+  "/settings(.*)",
+]);
+const isAuthPage = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
 
 export default clerkMiddleware(
   async (auth, req) => {
     if (isProtectedRoute(req)) {
       await auth.protect();
+    }
+    // Clerk will not render the sign-in form for a signed-in user, which leaves a blank page.
+    if (isAuthPage(req)) {
+      const { userId } = await auth();
+      if (userId) return NextResponse.redirect(new URL("/dashboard", req.url));
     }
   },
   { signInUrl: "/sign-in", signUpUrl: "/sign-up" },

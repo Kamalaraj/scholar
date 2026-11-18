@@ -7,11 +7,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BriefComposer } from "./brief-composer";
 
 const createRun = vi.fn();
+const push = vi.fn();
 
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
   return { ...actual, useApi: () => ({ createRun }) };
 });
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 function Harness() {
@@ -29,7 +31,10 @@ function setup() {
   return userEvent.setup();
 }
 
-beforeEach(() => createRun.mockReset().mockResolvedValue({ id: "1" }));
+beforeEach(() => {
+  push.mockReset();
+  createRun.mockReset().mockResolvedValue({ id: "1" });
+});
 
 describe("BriefComposer", () => {
   it("keeps Draft a plan disabled until 10 characters are typed", async () => {
@@ -72,6 +77,7 @@ describe("BriefComposer", () => {
     await waitFor(() =>
       expect(screen.getByLabelText(/what do you want to find out/i)).toHaveValue(""),
     );
+    expect(push).toHaveBeenCalledWith("/runs/1");
   });
 
   it("submits with Ctrl+Enter", async () => {

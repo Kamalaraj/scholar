@@ -34,7 +34,7 @@ test("TP-2.2 example chip + Deep creates a run at the top of the library", async
 
   const firstRow = page.getByRole("link", { name: new RegExp(question.slice(0, 30)) }).first();
   await expect(firstRow).toBeVisible();
-  await expect(firstRow).toContainText("Queued");
+  await expect(firstRow).toContainText(/Queued|Planning/);
   await expect(firstRow).toContainText("Deep");
   await expect(box(page)).toHaveValue("");
 });

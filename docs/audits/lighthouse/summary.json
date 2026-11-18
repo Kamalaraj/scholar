@@ -1,0 +1,82 @@
+{
+  "tool": "lighthouse 12.8.2 (scripts/lighthouse.mjs)",
+  "build": "next build + next start (production), Clerk development instance",
+  "runs": [
+    {
+      "run": "desk-desktop",
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 78
+      },
+      "metrics": {
+        "largest-contentful-paint": "0.5 s",
+        "total-blocking-time": "0 ms",
+        "cumulative-layout-shift": "0.003",
+        "speed-index": "0.2 s",
+        "total-byte-weight": "Total size was 55 KiB"
+      },
+      "failing_best_practices": [
+        "third-party-cookies",
+        "inspector-issues"
+      ]
+    },
+    {
+      "run": "desk-mobile",
+      "scores": {
+        "performance": 100,
+        "accessibility": 100,
+        "best-practices": 79
+      },
+      "metrics": {
+        "largest-contentful-paint": "1.5 s",
+        "total-blocking-time": "0 ms",
+        "cumulative-layout-shift": "0.001",
+        "speed-index": "1.4 s",
+        "total-byte-weight": "Total size was 50 KiB"
+      },
+      "failing_best_practices": [
+        "third-party-cookies",
+        "inspector-issues"
+      ]
+    },
+    {
+      "run": "report-desktop",
+      "scores": {
+        "performance": 94,
+        "accessibility": 100,
+        "best-practices": 78
+      },
+      "metrics": {
+        "largest-contentful-paint": "0.5 s",
+        "total-blocking-time": "0 ms",
+        "cumulative-layout-shift": "0.156",
+        "speed-index": "0.4 s",
+        "total-byte-weight": "Total size was 91 KiB"
+      },
+      "failing_best_practices": [
+        "third-party-cookies",
+        "inspector-issues"
+      ]
+    },
+    {
+      "run": "report-mobile",
+      "scores": {
+        "performance": 99,
+        "accessibility": 100,
+        "best-practices": 79
+      },
+      "metrics": {
+        "largest-contentful-paint": "2.2 s",
+        "total-blocking-time": "10 ms",
+        "cumulative-layout-shift": "0.019",
+        "speed-index": "1.4 s",
+        "total-byte-weight": "Total size was 47 KiB"
+      },
+      "failing_best_practices": [
+        "third-party-cookies",
+        "inspector-issues"
+      ]
+    }
+  ]
+}

@@ -135,4 +135,4 @@ Never mark a phase done if a scenario fails or a Critical or High finding is ope
 | `DAILY_RUN_LIMIT` | backend | Default 5 |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | frontend | Clerk |
 | `NEXT_PUBLIC_API_URL` | frontend | `http://localhost:8000/api/v1` locally |
-| `LANGSMITH_API_KEY`, `LANGSMITH_TRACING` | backend | Optional tracing |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | backend | Optional Langfuse tracing |

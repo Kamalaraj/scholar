@@ -1,14 +1,11 @@
-import { RunSummary } from "@/components/research/run-summary";
-import { TopBar } from "@/components/layout/top-bar";
+import { AppShell } from "@/components/layout/app-shell";
+import { RunWorkspace } from "@/components/research/run-workspace";
 
 export default async function RunPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <TopBar />
-      <main className="mx-auto max-w-[880px] px-4 py-8 sm:px-6 sm:py-12">
-        <RunSummary runId={id} />
-      </main>
-    </div>
+    <AppShell width="full">
+      <RunWorkspace runId={id} />
+    </AppShell>
   );
 }

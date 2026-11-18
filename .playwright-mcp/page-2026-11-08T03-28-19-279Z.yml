@@ -1,0 +1,96 @@
+- generic [ref=f10e1]:
+  - generic [ref=f10e2]:
+    - banner [ref=f10e3]:
+      - link "Scholar" [ref=f10e4] [cursor=pointer]:
+        - /url: /dashboard
+      - generic [ref=f10e5]:
+        - generic [ref=f10e53]: user-a+clerk_test@example.com
+        - button "Switch to dark theme" [ref=f10e6]
+        - button "Open user menu" [ref=f10e55] [cursor=pointer]:
+          - img "'s logo" [ref=f10e58]
+    - main [ref=f10e7]:
+      - heading "Your desk" [level=1] [ref=f10e8]
+      - generic [ref=f10e9]:
+        - generic [ref=f10e10]:
+          - generic [ref=f10e11]:
+            - generic [ref=f10e12]: What do you want to find out?
+            - textbox "What do you want to find out?" [ref=f10e13]:
+              - /placeholder: e.g. What are the main approaches to recycling EV batteries?
+              - text: What is the current state of solid-state battery commercialisation?
+            - paragraph [ref=f10e14]: Press Ctrl or Cmd + Enter to draft a plan.
+          - list "Example briefs" [ref=f10e15]:
+            - listitem [ref=f10e16]:
+              - button "What are the main approaches to recycling EV batteries, and how mature are they?" [ref=f10e17]
+            - listitem [ref=f10e18]:
+              - button "How effective are four-day work weeks, based on recent pilot studies?" [ref=f10e19]
+            - listitem [ref=f10e20]:
+              - button "What is the current state of solid-state battery commercialisation?" [active] [ref=f10e21]
+          - generic [ref=f10e22]:
+            - group "Research depth" [ref=f10e23]:
+              - button "Quick about 3 angles, ~1 min" [pressed] [ref=f10e24]:
+                - generic [ref=f10e25]: Quick
+                - generic [ref=f10e26]: about 3 angles, ~1 min
+              - button "Deep about 6 angles, ~3 min" [ref=f10e27]:
+                - generic [ref=f10e28]: Deep
+                - generic [ref=f10e29]: about 6 angles, ~3 min
+            - button "Draft a plan" [ref=f10e109]
+        - region [ref=f10e30]:
+          - heading "Your reports" [level=2] [ref=f10e31]
+          - list [ref=f10e60]:
+            - listitem [ref=f10e61]:
+              - 'link "Ownership check 1794078422570: how do heat pumps work? Queued Quick 0 sources 8 hours ago" [ref=f10e62] [cursor=pointer]':
+                - /url: /runs/cb102b93-ef81-4b1a-bd95-0f976a6fe55f
+                - generic [ref=f10e63]: "Ownership check 1794078422570: how do heat pumps work?"
+                - generic [ref=f10e64]:
+                  - generic [ref=f10e65]: Queued
+                  - generic [ref=f10e66]: Quick
+                  - generic [ref=f10e67]: 0 sources
+                  - time [ref=f10e68]: 8 hours ago
+            - listitem [ref=f10e69]:
+              - link "What are the main approaches to recycling EV batteries, and how mature are they? Queued Deep 0 sources 8 hours ago" [ref=f10e70] [cursor=pointer]:
+                - /url: /runs/43808d31-e577-4cce-b055-f4dad3ff6184
+                - generic [ref=f10e71]: What are the main approaches to recycling EV batteries, and how mature are they?
+                - generic [ref=f10e72]:
+                  - generic [ref=f10e73]: Queued
+                  - generic [ref=f10e74]: Deep
+                  - generic [ref=f10e75]: 0 sources
+                  - time [ref=f10e76]: 8 hours ago
+            - listitem [ref=f10e77]:
+              - link "What are the main approaches to recycling EV batteries, and how mature are they? Queued Deep 0 sources 8 hours ago" [ref=f10e78] [cursor=pointer]:
+                - /url: /runs/c0946efb-0200-4ba0-92a0-aabc2af5ca48
+                - generic [ref=f10e79]: What are the main approaches to recycling EV batteries, and how mature are they?
+                - generic [ref=f10e80]:
+                  - generic [ref=f10e81]: Queued
+                  - generic [ref=f10e82]: Deep
+                  - generic [ref=f10e83]: 0 sources
+                  - time [ref=f10e84]: 8 hours ago
+            - listitem [ref=f10e85]:
+              - 'link "Ownership check 1794078362672: how do heat pumps work? Queued Quick 0 sources 8 hours ago" [ref=f10e86] [cursor=pointer]':
+                - /url: /runs/6c1451cd-b847-4871-ad80-78b77df4a272
+                - generic [ref=f10e87]: "Ownership check 1794078362672: how do heat pumps work?"
+                - generic [ref=f10e88]:
+                  - generic [ref=f10e89]: Queued
+                  - generic [ref=f10e90]: Quick
+                  - generic [ref=f10e91]: 0 sources
+                  - time [ref=f10e92]: 8 hours ago
+            - listitem [ref=f10e93]:
+              - link "What are the main approaches to recycling EV batteries, and how mature are they? Queued Deep 0 sources 8 hours ago" [ref=f10e94] [cursor=pointer]:
+                - /url: /runs/f2df0013-19ee-43a3-b985-ffdef4e06f75
+                - generic [ref=f10e95]: What are the main approaches to recycling EV batteries, and how mature are they?
+                - generic [ref=f10e96]:
+                  - generic [ref=f10e97]: Queued
+                  - generic [ref=f10e98]: Deep
+                  - generic [ref=f10e99]: 0 sources
+                  - time [ref=f10e100]: 8 hours ago
+            - listitem [ref=f10e101]:
+              - 'link "Ownership check 1794078321346: how do heat pumps work? Queued Quick 0 sources 8 hours ago" [ref=f10e102] [cursor=pointer]':
+                - /url: /runs/0e222408-0bde-4f44-a1ef-b74df59ce485
+                - generic [ref=f10e103]: "Ownership check 1794078321346: how do heat pumps work?"
+                - generic [ref=f10e104]:
+                  - generic [ref=f10e105]: Queued
+                  - generic [ref=f10e106]: Quick
+                  - generic [ref=f10e107]: 0 sources
+                  - time [ref=f10e108]: 8 hours ago
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f10e48] [cursor=pointer]
+  - alert [ref=f10e52]

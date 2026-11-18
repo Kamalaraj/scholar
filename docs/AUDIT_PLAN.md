@@ -90,7 +90,7 @@ Every finding records: id, severity, area, evidence (file:line, screenshot, comm
 ### 3.9 Secrets
 - [ ] `.env*` files git-ignored; `.env.example` has names only.
 - [ ] `gitleaks detect` on the full history finds nothing.
-- [ ] No secrets in logs, error responses, frontend bundles (only `NEXT_PUBLIC_*` reach the browser) or LangSmith traces.
+- [ ] No secrets in logs, error responses, frontend bundles (only `NEXT_PUBLIC_*` reach the browser) or Langfuse traces.
 
 ### 3.10 Performance
 - [ ] Lighthouse: Performance 90+, Accessibility 100, Best Practices 95+ on Desk and a finished report.
@@ -107,7 +107,7 @@ Every finding records: id, severity, area, evidence (file:line, screenshot, comm
 ### 3.12 Observability
 - [ ] Structured JSON logs with `run_id` and `user_id` on every line about a run.
 - [ ] Each error shown to users carries an error id that appears in the logs.
-- [ ] LangSmith tracing can be turned on with an env var.
+- [ ] Langfuse tracing can be turned on with an env var.
 - [ ] Health check covers the database.
 
 ### 3.13 Deployment

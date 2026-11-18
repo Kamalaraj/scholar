@@ -31,12 +31,12 @@ Do not start a phase until the previous gate passes.
 | 0 | Foundation and tooling | Done |
 | 1 | Authentication with Clerk | Done |
 | 2 | Database and Runs API | In review |
-| 3 | Agent graph core | Not started |
-| 4 | Live streaming | Not started |
-| 5 | Plan review (human in the loop) | Not started |
-| 6 | Report and sources | Not started |
-| 7 | History, run management and resilience | Not started |
-| 8 | UI polish, accessibility and full system audit | Not started |
+| 3 | Agent graph core | In review |
+| 4 | Live streaming | In review |
+| 5 | Plan review (human in the loop) | In review |
+| 6 | Report and sources | In review |
+| 7 | History, run management and resilience | In review |
+| 8 | UI polish, accessibility and full system audit | In review |
 | 9 | Deployment and launch | Not started |
 
 ---
@@ -194,7 +194,7 @@ Tasks:
 - Neon Postgres 17 with pgvector; run migrations as a release step.
 - Backend on Render or Fly.io (long-lived process, not serverless). Secrets set in the host.
 - Frontend on Vercel. Clerk production instance and allowed origins. CORS only for the Vercel domain.
-- LangSmith tracing on in production. Health check wired to the host.
+- Langfuse tracing on in production. Health check wired to the host.
 - README: demo GIF, architecture diagram, agent graph (`draw_mermaid()`), setup steps, design decisions, measured numbers (time and cost per report).
 
 Exit criteria:

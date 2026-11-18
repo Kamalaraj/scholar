@@ -1,0 +1,70 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - banner [ref=f6e3]:
+      - link "Scholar" [ref=f6e4] [cursor=pointer]:
+        - /url: /dashboard
+      - generic [ref=f6e5]:
+        - generic [ref=f6e6]: user-a+clerk_test@example.com
+        - button "Switch to dark theme" [ref=f6e7]
+        - button "Open user menu" [ref=f6e9] [cursor=pointer]:
+          - img "'s logo" [ref=f6e12]
+    - main [ref=f6e14]:
+      - generic [ref=f6e15]:
+        - generic [ref=f6e16]:
+          - generic [ref=f6e17]: Needs review
+          - heading "How do tidal power plants affect marine ecosystems?" [level=1] [ref=f6e18]
+          - paragraph [ref=f6e19]: Quick · started just now
+        - paragraph [ref=f6e20]: awaiting approval
+        - status [ref=f6e21]: Reconnecting…
+        - generic [ref=f6e24]:
+          - navigation "Progress" [ref=f6e25]:
+            - list [ref=f6e26]:
+              - listitem [ref=f6e27]:
+                - generic [ref=f6e28]: Done
+                - generic [ref=f6e32]:
+                  - generic [ref=f6e33]: Brief
+                  - generic [ref=f6e34]: Question received
+              - listitem [ref=f6e35]:
+                - generic [ref=f6e36]: Your turn
+                - generic [ref=f6e41]:
+                  - generic [ref=f6e42]: Plan
+                  - generic [ref=f6e43]: Your turn · Waiting for you
+              - listitem [ref=f6e44]:
+                - generic [ref=f6e45]: Not started
+                - generic [ref=f6e49]:
+                  - generic [ref=f6e50]: Research
+                  - generic [ref=f6e51]: Not started
+              - listitem [ref=f6e52]:
+                - generic [ref=f6e53]: Not started
+                - generic [ref=f6e57]:
+                  - generic [ref=f6e58]: Writing
+                  - generic [ref=f6e59]: Not started
+              - listitem [ref=f6e60]:
+                - generic [ref=f6e61]: Not started
+                - generic [ref=f6e65]:
+                  - generic [ref=f6e66]: Report
+                  - generic [ref=f6e67]: Not started
+            - generic [ref=f6e68]:
+              - generic [ref=f6e69]:
+                - term [ref=f6e70]: Elapsed
+                - definition [ref=f6e71]: 0:54
+              - generic [ref=f6e72]:
+                - term [ref=f6e73]: Sources found
+                - definition [ref=f6e74]: "0"
+          - generic [ref=f6e76]:
+            - heading "Here is the plan" [level=2] [ref=f6e77]
+            - list [ref=f6e78]:
+              - listitem [ref=f6e79]: "What is the background of: How do tidal power plants affect marine ecosystems??"
+              - listitem [ref=f6e80]: "What is the current state of: How do tidal power plants affect marine ecosystems??"
+              - listitem [ref=f6e81]: "What is the key challenges of: How do tidal power plants affect marine ecosystems??"
+            - paragraph [ref=f6e82]: Editing and approving the plan arrives in the next phase.
+          - complementary [ref=f6e83]:
+            - generic [ref=f6e84]:
+              - tablist [ref=f6e85]:
+                - tab "Sources (0)" [selected] [ref=f6e86]
+                - tab "Activity" [ref=f6e87]
+              - tabpanel "Sources (0)" [ref=f6e88]:
+                - paragraph [ref=f6e89]: Sources appear here as they are found.
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=f6e95] [cursor=pointer]
+  - alert [ref=f6e99]
