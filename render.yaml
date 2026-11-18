@@ -1,0 +1,49 @@
+# Render Blueprint for the Scholar backend. The frontend lives on Vercel, the database on Neon.
+services:
+  - type: web
+    name: scholar-api
+    runtime: docker
+    plan: starter # must not sleep: SSE streams and background runs need a long-lived process
+    dockerfilePath: ./docker/backend.Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    preDeployCommand: alembic upgrade head # release step; use the Neon DIRECT url
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: LLM_PROVIDER
+        value: groq
+      - key: SEARCH_PROVIDER
+        value: tavily
+      - key: DAILY_RUN_LIMIT
+        value: "5"
+      - key: RUN_TOKEN_BUDGET
+        value: "150000"
+      - key: RUN_TIMEOUT_SECONDS
+        value: "600"
+      - key: MAX_RESEARCH_CONCURRENCY
+        value: "3"
+      - key: LANGFUSE_TRACING_ENVIRONMENT
+        value: production
+      - key: LANGFUSE_BASE_URL
+        value: https://cloud.langfuse.com
+      # Secrets and per-environment values: set in the Render dashboard.
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: CLERK_JWKS_URL
+        sync: false
+      - key: CLERK_ISSUER
+        sync: false
+      - key: CLERK_AUTHORIZED_PARTIES
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false

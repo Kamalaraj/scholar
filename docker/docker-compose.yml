@@ -1,0 +1,76 @@
+# Run from the repo root through the Makefile (make docker-up), or:
+#   make docker-up
+# Paths below are relative to this file's folder (docker/).
+name: research_assistant  # keeps the existing container and named volume
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scholar
+      POSTGRES_PASSWORD: scholar
+      POSTGRES_DB: scholar
+    ports:
+      - "5434:5432"
+    volumes:
+      - scholar-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scholar -d scholar"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: applies Alembic migrations, then exits. The backend waits for it.
+  migrate:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    image: scholar-backend
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://scholar:scholar@db:5432/scholar
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    profiles: ["app"]
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    image: scholar-backend
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://scholar:scholar@db:5432/scholar
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles: ["app"]
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}
+    image: scholar-frontend
+    restart: unless-stopped
+    env_file:
+      - ../.env
+      - path: ../frontend/.env.local  # real Clerk keys override the root placeholders
+        required: false
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    profiles: ["app"]
+
+volumes:
+  scholar-pgdata:

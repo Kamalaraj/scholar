@@ -27,7 +27,7 @@ We are building the **MVP**, phase by phase. The plans below are the source of t
 ```
 scholar/
 ├── CLAUDE.md
-├── docker-compose.yml        # db (pg17 + pgvector), backend, frontend
+├── docker/                   # docker-compose.yml, backend.Dockerfile, frontend.Dockerfile
 ├── .env.example
 ├── Makefile
 ├── docs/                     # plans, phase-reports/, audits/
@@ -56,7 +56,8 @@ scholar/
 ## Commands
 
 ```bash
-docker compose up -d db                # Postgres 17 + pgvector on :5432
+make db-up                             # Postgres 17 + pgvector on :5434
+make docker-up                         # whole stack in containers (db, migrate, backend, frontend)
 make dev                               # backend :8000 and frontend :3000
 make migrate                           # cd backend && uv run alembic upgrade head
 make lint                              # ruff, mypy, eslint, tsc

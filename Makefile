@@ -1,14 +1,30 @@
-.PHONY: dev dev-backend dev-frontend db-up db-down migrate lint lint-backend lint-frontend test test-backend test-frontend e2e types install
+.PHONY: docker-up docker-down docker-logs docker-build dev dev-backend dev-frontend db-up db-down migrate lint lint-backend lint-frontend test test-backend test-frontend e2e types install
 
 install:
 	cd backend && uv sync
 	cd frontend && npm install
 
+# frontend/.env.local (if present) overrides the root .env, so build args get the real Clerk key
+COMPOSE = docker compose --env-file .env $(if $(wildcard frontend/.env.local),--env-file frontend/.env.local) -f docker/docker-compose.yml
+
 db-up:
-	docker compose up -d db
+	$(COMPOSE) up -d db
 
 db-down:
-	docker compose stop db
+	$(COMPOSE) stop db
+
+# Full stack in containers (db, migrate, backend, frontend)
+docker-build:
+	$(COMPOSE) --profile app build
+
+docker-up:
+	$(COMPOSE) --profile app up -d --build
+
+docker-down:
+	$(COMPOSE) --profile app down
+
+docker-logs:
+	$(COMPOSE) --profile app logs -f
 
 migrate:
 	cd backend && uv run alembic upgrade head
